@@ -11,18 +11,31 @@ import { printSuccess, printError, printInfo, createSpinner } from '../utils/dis
 
 /** Preset models that users can choose from. */
 const MODEL_PRESETS = [
-  { name: 'Claude Opus (subscription — no API key needed)', value: 'claude-opus', provider: 'anthropic', needsKey: false },
-  { name: 'Claude Sonnet (subscription — no API key needed)', value: 'claude-sonnet', provider: 'anthropic', needsKey: false },
-  { name: 'Claude Haiku (subscription — no API key needed)', value: 'claude-haiku', provider: 'anthropic', needsKey: false },
-  { name: 'Ollama — qwen2.5:7b (local SLM)', value: 'ollama:qwen2.5:7b', provider: 'ollama', needsKey: false },
-  { name: 'Ollama — exaone3.5:7.8b (local SLM)', value: 'ollama:exaone3.5:7.8b', provider: 'ollama', needsKey: false },
-  { name: 'Ollama — custom model', value: 'ollama:custom', provider: 'ollama', needsKey: false },
-  { name: 'GPT-4o (API key required)', value: 'gpt-4o', provider: 'openai', needsKey: true },
-  { name: 'GPT-4o-mini (API key required)', value: 'gpt-4o-mini', provider: 'openai', needsKey: true },
-  { name: 'Gemini Pro (API key required)', value: 'gemini-pro', provider: 'gemini', needsKey: true },
-  { name: 'Gemini Flash (API key required)', value: 'gemini-flash', provider: 'gemini', needsKey: true },
-  { name: 'Custom (enter manually)', value: '__custom__', provider: 'custom', needsKey: false },
+  // Claude
+  { name: 'Claude Opus', value: 'claude-opus', provider: 'anthropic', hasSub: true, hasApi: true },
+  { name: 'Claude Sonnet', value: 'claude-sonnet', provider: 'anthropic', hasSub: true, hasApi: true },
+  { name: 'Claude Haiku', value: 'claude-haiku', provider: 'anthropic', hasSub: true, hasApi: true },
+  // Ollama (local only)
+  { name: 'Ollama — qwen2.5:7b', value: 'ollama:qwen2.5:7b', provider: 'ollama', hasSub: false, hasApi: false },
+  { name: 'Ollama — exaone3.5:7.8b', value: 'ollama:exaone3.5:7.8b', provider: 'ollama', hasSub: false, hasApi: false },
+  { name: 'Ollama — custom model', value: 'ollama:custom', provider: 'ollama', hasSub: false, hasApi: false },
+  // OpenAI / Codex
+  { name: 'GPT-4o', value: 'gpt-4o', provider: 'openai', hasSub: true, hasApi: true },
+  { name: 'GPT-4o-mini', value: 'gpt-4o-mini', provider: 'openai', hasSub: true, hasApi: true },
+  { name: 'Codex (OpenAI)', value: 'codex', provider: 'openai', hasSub: true, hasApi: true },
+  // Gemini
+  { name: 'Gemini Pro', value: 'gemini-pro', provider: 'gemini', hasSub: true, hasApi: true },
+  { name: 'Gemini Flash', value: 'gemini-flash', provider: 'gemini', hasSub: true, hasApi: true },
+  // Custom
+  { name: 'Custom (enter manually)', value: '__custom__', provider: 'custom', hasSub: false, hasApi: false },
 ];
+
+/** CLI command names for subscription mode by provider. */
+const SUBSCRIPTION_CLI: Record<string, string> = {
+  anthropic: 'claude',
+  openai: 'codex',
+  gemini: 'gemini',   // placeholder — may need adjustment
+};
 
 export const modelCommand = new Command('model')
   .description('Manage model registry');
@@ -41,6 +54,7 @@ modelCommand
       let modelName = name;
       let endpoint = opts?.endpoint;
       let apiKey = opts?.apiKey;
+      let useSubscription = false;
 
       // Interactive mode if no name given
       if (!modelName) {
@@ -74,8 +88,23 @@ modelCommand
           }
         }
 
-        // Ask for API key if needed
-        if (preset?.needsKey && !apiKey) {
+        // Ask subscription vs API key for models that support both
+        if (preset && preset.hasSub && preset.hasApi) {
+          const cliName = SUBSCRIPTION_CLI[preset.provider] ?? preset.provider;
+          const authMode = await select({
+            message: `How to connect to ${modelName}?`,
+            choices: [
+              { name: `Subscription (uses ${cliName} CLI — no API key needed)`, value: 'subscription' },
+              { name: 'API key (direct API call)', value: 'api' },
+            ],
+          });
+          if (authMode === 'subscription') {
+            useSubscription = true;
+          } else if (!apiKey) {
+            apiKey = await input({ message: `API key for ${modelName}:` });
+          }
+        } else if (preset && preset.hasApi && !preset.hasSub && !apiKey) {
+          // API only
           apiKey = await input({ message: `API key for ${modelName}:` });
         }
       }
@@ -108,8 +137,8 @@ modelCommand
         entry.endpoint = 'http://localhost:11434';
       }
 
-      // For anthropic subscription models, mark as subscription
-      if (parsed.provider === 'anthropic' && !apiKey) {
+      // Mark subscription mode
+      if (useSubscription || (!apiKey && parsed.provider !== 'ollama')) {
         entry.subscription = true;
       }
 

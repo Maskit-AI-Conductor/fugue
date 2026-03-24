@@ -1,7 +1,9 @@
 /**
  * Google Gemini adapter.
+ * Supports subscription mode (gemini CLI) and API mode.
  */
 
+import { execSync } from 'node:child_process';
 import type { ModelAdapter, GenerateOptions } from './adapter.js';
 import { parseJsonResponse } from '../utils/json-repair.js';
 
@@ -9,21 +11,66 @@ export class GeminiAdapter implements ModelAdapter {
   name: string;
   provider = 'gemini';
   private model: string;
-  private apiKey: string;
+  private apiKey: string | null;
+  private subscription: boolean;
   private defaultTimeout: number;
 
-  constructor(name: string, model: string, apiKey: string, timeout = 120) {
+  constructor(name: string, model: string, apiKey: string | null, subscription = false, timeout = 120) {
     this.name = name;
     this.model = model;
     this.apiKey = apiKey;
+    this.subscription = subscription;
     this.defaultTimeout = timeout;
   }
 
   async checkHealth(): Promise<boolean> {
+    if (this.subscription) {
+      try {
+        execSync('which gemini', { stdio: 'pipe' });
+        return true;
+      } catch {
+        // Gemini CLI may not exist yet — still register
+        return true;
+      }
+    }
     return Boolean(this.apiKey);
   }
 
   async generate(prompt: string, options?: GenerateOptions): Promise<string> {
+    if (this.subscription) {
+      return this.generateViaCli(prompt, options);
+    }
+    return this.generateViaApi(prompt, options);
+  }
+
+  private generateViaCli(prompt: string, options?: GenerateOptions): string {
+    const fullPrompt = options?.system
+      ? `${options.system}\n\n${prompt}`
+      : prompt;
+
+    try {
+      const result = execSync(
+        `gemini --print --model ${this.model}`,
+        {
+          input: fullPrompt,
+          encoding: 'utf-8',
+          timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
+          maxBuffer: 10 * 1024 * 1024,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        },
+      );
+      return result.trim();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Gemini CLI failed: ${msg}`);
+    }
+  }
+
+  private async generateViaApi(prompt: string, options?: GenerateOptions): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('No API key. Use subscription mode or set GOOGLE_API_KEY.');
+    }
+
     const timeout = (options?.timeout ?? this.defaultTimeout) * 1000;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);

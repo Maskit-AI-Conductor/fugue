@@ -74,11 +74,9 @@ export function createAdapter(entry: ModelEntry): ModelAdapter {
     case 'anthropic':
       return new AnthropicAdapter(entry.name, entry.model, apiKey, entry.subscription ?? false);
     case 'openai':
-      if (!apiKey) throw new Error(`No API key for ${entry.name}. Set OPENAI_API_KEY or pass --api-key`);
-      return new OpenAIAdapter(entry.name, entry.model, apiKey, entry.endpoint);
+      return new OpenAIAdapter(entry.name, entry.model, apiKey, entry.subscription ?? false, entry.endpoint);
     case 'gemini':
-      if (!apiKey) throw new Error(`No API key for ${entry.name}. Set GOOGLE_API_KEY or pass --api-key`);
-      return new GeminiAdapter(entry.name, entry.model, apiKey);
+      return new GeminiAdapter(entry.name, entry.model, apiKey, entry.subscription ?? false);
     default:
       throw new Error(`Unknown provider: ${entry.provider}`);
   }
