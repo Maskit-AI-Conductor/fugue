@@ -1,0 +1,38 @@
+[project]
+name = "bpro-cli"
+version = "0.1.0"
+description = "Beyond Prototype — AI-powered PMO that reverse-engineers codebases into production specs"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.9"
+authors = [{name = "Maskit", email = "dev@maskit.co.kr"}]
+keywords = ["pmo", "ai", "agent", "audit", "slm", "requirements"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+    "click>=8.0",
+    "httpx>=0.24",
+    "rich>=13.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+bpro = "bpro.cli.main:cli"
+
+[project.urls]
+Homepage = "https://github.com/Maskit-AI-Conductor/bpro"
+Repository = "https://github.com/Maskit-AI-Conductor/bpro"
+Issues = "https://github.com/Maskit-AI-Conductor/bpro/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bpro"]
