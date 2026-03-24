@@ -1,46 +1,70 @@
 /**
- * bpro config — Configuration management.
+ * bpro config — Configuration management with interactive conductor selection.
  */
 
 import { Command } from 'commander';
 import chalk from 'chalk';
+import { select } from '@inquirer/prompts';
 import { requireBproDir, loadConfig, saveConfig, loadModels } from '../core/project.js';
-import { printSuccess, printError, printWarning } from '../utils/display.js';
+import { printSuccess, printError, printWarning, printInfo } from '../utils/display.js';
 
 export const configCommand = new Command('config')
   .description('Manage bpro configuration');
 
 configCommand
-  .command('set <key> <value>')
+  .command('set <key> [value]')
   .description('Set a configuration value (e.g. conductor)')
-  .action(async (key: string, value: string) => {
+  .action(async (key: string, value?: string) => {
     try {
       const bproDir = requireBproDir();
       const config = loadConfig(bproDir);
 
       switch (key) {
         case 'conductor': {
-          // Verify the model is registered
           const registry = loadModels(bproDir);
-          const model = registry.models.find((m) => m.name === value);
-          if (!model) {
-            printWarning(`Model '${value}' is not registered.`);
-            console.log(`  Register it first: ${chalk.cyan(`bpro model add ${value}`)}`);
-            console.log(`  Or pick from: ${chalk.cyan('bpro model list')}`);
+
+          if (registry.models.length === 0) {
+            printWarning('No models registered.');
+            console.log(`  Run ${chalk.cyan('bpro model add')} first.`);
             process.exit(1);
           }
-          config.conductor = value;
+
+          let selectedModel = value;
+
+          // Interactive selection if no value given
+          if (!selectedModel) {
+            selectedModel = await select({
+              message: 'Select conductor (orchestrator) model:',
+              choices: registry.models.map(m => ({
+                name: `${m.name} (${m.provider}${m.subscription ? ', subscription' : ''})`,
+                value: m.name,
+              })),
+            });
+          }
+
+          const model = registry.models.find(m => m.name === selectedModel);
+          if (!model) {
+            printWarning(`Model '${selectedModel}' is not registered.`);
+            console.log(`  Register it first: ${chalk.cyan(`bpro model add`)}`);
+            process.exit(1);
+          }
+
+          config.conductor = selectedModel;
           saveConfig(bproDir, config);
-          printSuccess(`Conductor set to '${value}' (${model.provider})`);
+          printSuccess(`Conductor set to '${selectedModel}' (${model.provider})`);
           break;
         }
         default:
-          // Generic key-value set
+          if (!value) {
+            printError(`Usage: bpro config set ${key} <value>`);
+            process.exit(1);
+          }
           (config as Record<string, unknown>)[key] = value;
           saveConfig(bproDir, config);
           printSuccess(`${key} = ${value}`);
       }
     } catch (err: unknown) {
+      if ((err as { name?: string })?.name === 'ExitPromptError') return;
       printError(err instanceof Error ? err.message : String(err));
       process.exit(1);
     }
@@ -63,10 +87,10 @@ configCommand
       console.log(`  Created:    ${config.created}`);
 
       if (config.conductor) {
-        const model = registry.models.find((m) => m.name === config.conductor);
+        const model = registry.models.find(m => m.name === config.conductor);
         console.log(`  Conductor:  ${chalk.yellow(config.conductor)} (${model?.provider ?? 'unknown'})`);
       } else {
-        console.log(`  Conductor:  ${chalk.dim('not set')}`);
+        console.log(`  Conductor:  ${chalk.dim('not set')} — run ${chalk.cyan('bpro config set conductor')}`);
       }
 
       console.log(`  Models:     ${registry.models.length} registered`);

@@ -50,6 +50,7 @@ export interface ModelEntry {
   endpoint?: string;
   api_key?: string;
   env_var?: string;
+  subscription?: boolean;
   added_at: string;
 }
 

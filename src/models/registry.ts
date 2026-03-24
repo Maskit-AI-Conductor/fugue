@@ -72,8 +72,7 @@ export function createAdapter(entry: ModelEntry): ModelAdapter {
         entry.endpoint ?? 'http://localhost:11434',
       );
     case 'anthropic':
-      if (!apiKey) throw new Error(`No API key for ${entry.name}. Set ANTHROPIC_API_KEY or pass --api-key`);
-      return new AnthropicAdapter(entry.name, entry.model, apiKey);
+      return new AnthropicAdapter(entry.name, entry.model, apiKey, entry.subscription ?? false);
     case 'openai':
       if (!apiKey) throw new Error(`No API key for ${entry.name}. Set OPENAI_API_KEY or pass --api-key`);
       return new OpenAIAdapter(entry.name, entry.model, apiKey, entry.endpoint);
