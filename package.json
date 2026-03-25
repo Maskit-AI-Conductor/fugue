@@ -1,6 +1,6 @@
 {
   "name": "fugue-cli",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Fugue — AI agents in concert. Conductor-based PMO for your terminal.",
   "type": "module",
   "main": "dist/index.js",
