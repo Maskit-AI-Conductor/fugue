@@ -1,0 +1,23 @@
+id: TASK-005
+title: "Model Management"
+requester: CEO
+assignees: []
+status: OPEN
+created_at: "2026-03-25T01:00:00Z"
+plan_file: "../../docs/requirements/05-model-management.md"
+req_ids:
+  - BR-040
+  - BR-041
+  - BR-042
+  - BR-043
+  - BR-044
+  - BR-045
+  - BR-046
+  - BR-047
+  - BR-048
+  - BR-049
+  - BR-050
+  - BR-051
+  - BR-052
+  - BR-053
+escalations: []

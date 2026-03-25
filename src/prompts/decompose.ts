@@ -20,7 +20,8 @@ Additional rules:
 - Do NOT generate duplicate requirements
 - Priority distribution: aim for ~25% HIGH, ~50% MEDIUM, ~25% LOW
 - If the input has severity/priority hints, inherit them
-If the document is in Korean, keep title and description in Korean.`;
+If the document is in Korean, keep title and description in Korean.
+IMPORTANT: Output in Korean ONLY. Do NOT use Japanese, Chinese characters, or any non-Korean text in title or description.`;
 
 /**
  * Build a system prompt enhanced with config-driven rules.

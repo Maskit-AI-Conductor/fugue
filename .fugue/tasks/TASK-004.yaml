@@ -1,0 +1,18 @@
+id: TASK-004
+title: "Agent Governance"
+requester: CEO
+assignees: []
+status: OPEN
+created_at: "2026-03-25T01:00:00Z"
+plan_file: "../../docs/requirements/04-agent-governance.md"
+req_ids:
+  - BR-030
+  - BR-031
+  - BR-032
+  - BR-033
+  - BR-034
+  - BR-035
+  - BR-036
+  - BR-037
+  - BR-038
+escalations: []

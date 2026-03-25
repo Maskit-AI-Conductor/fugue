@@ -78,51 +78,28 @@ export class AnthropicAdapter implements ModelAdapter {
     const tmpFile = path.join(os.tmpdir(), `fugue-prompt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.txt`);
     fs.writeFileSync(tmpFile, fullPrompt, 'utf-8');
 
+    const modelFlag = this.model ? `--model ${this.model}` : '';
+    const timeoutMs = (options?.timeout ?? this.defaultTimeout) * 1000;
+    const execOpts = { encoding: 'utf-8' as const, timeout: timeoutMs, maxBuffer: 50 * 1024 * 1024, shell: '/bin/bash' };
+
     try {
-      // Use --bare to skip MCP/hooks/plugins initialization (much faster)
-      // --bare still uses subscription auth if no API key is set
-      const modelFlag = this.model ? `--model ${this.model}` : '';
-      const bareFlag = '--bare';
-      let stdout: string;
-      try {
-        const result = await execAsync(
-          `cat "${tmpFile}" | claude --print ${bareFlag} ${modelFlag}`,
-          {
-            encoding: 'utf-8',
-            timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
-            maxBuffer: 50 * 1024 * 1024,
-            shell: '/bin/bash',
-          },
-        );
-        stdout = result.stdout;
-      } catch {
-        // Fallback: without --bare (in case --bare needs API key on some setups)
+      // 1. Try --bare + model (fastest, needs API key)
+      if (process.env.ANTHROPIC_API_KEY) {
         try {
-          const result = await execAsync(
-            `cat "${tmpFile}" | claude --print ${modelFlag}`,
-            {
-              encoding: 'utf-8',
-              timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
-              maxBuffer: 50 * 1024 * 1024,
-              shell: '/bin/bash',
-            },
-          );
-          stdout = result.stdout;
-        } catch {
-          // Last fallback: no model flag, no bare
-          const result = await execAsync(
-            `cat "${tmpFile}" | claude --print`,
-            {
-              encoding: 'utf-8',
-              timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
-              maxBuffer: 50 * 1024 * 1024,
-              shell: '/bin/bash',
-            },
-          );
-          stdout = result.stdout;
-        }
+          const r = await execAsync(`cat "${tmpFile}" | claude --print --bare ${modelFlag}`, execOpts);
+          if (r.stdout.trim()) return r.stdout.trim();
+        } catch { /* fall through */ }
       }
-      return stdout.trim();
+
+      // 2. Try --print + model (subscription mode, may be slow with MCP)
+      try {
+        const r = await execAsync(`cat "${tmpFile}" | claude --print ${modelFlag}`, execOpts);
+        if (r.stdout.trim()) return r.stdout.trim();
+      } catch { /* fall through */ }
+
+      // 3. Try --print only (no model flag)
+      const r = await execAsync(`cat "${tmpFile}" | claude --print`, execOpts);
+      return r.stdout.trim();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(`Claude CLI failed: ${msg}`);

@@ -1,11 +1,12 @@
 {
   "name": "fugue-cli",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Fugue — AI agents in concert. Conductor-based PMO for your terminal.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "fugue": "dist/index.js"
+    "fugue": "dist/index.js",
+    "fugue-mcp": "dist/mcp/server.js"
   },
   "files": [
     "dist/",

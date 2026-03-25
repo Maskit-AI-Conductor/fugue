@@ -19,17 +19,29 @@ import { buildDeliverables } from '../core/deliverables.js';
 import { printSuccess, printError } from '../utils/display.js';
 import { emitEvent } from '../notifications/index.js';
 
-/** Derive a domain string from a REQ spec (code_refs path prefix or assigned_model). */
+/** Derive a domain string from a REQ spec. Priority: ID prefix > source file > code_refs > model */
 function deriveDomain(req: ReqSpec): string {
+  // 1. Extract from REQ ID prefix (e.g. REQ-CORE-001 → CORE)
+  const idMatch = req.id.match(/^REQ-([A-Z]+)-\d+/);
+  if (idMatch) return idMatch[1];
+
+  // 2. Extract from source file name (e.g. 01-core-identity.md → core-identity)
+  const source = (req.source as Record<string, string>)?.file ?? '';
+  if (source) {
+    const basename = source.replace(/.*\//, '').replace(/\.md$/, '').replace(/^\d+-/, '').replace(/_.*$/, '');
+    if (basename) return basename;
+  }
+
+  // 3. From code_refs path
   if (req.code_refs && req.code_refs.length > 0) {
-    // Use the first path segment of the first code_ref
     const first = req.code_refs[0];
     const parts = first.replace(/^\//, '').split('/');
     if (parts.length > 1) return parts[0];
   }
-  if (req.assigned_model) {
-    return req.assigned_model;
-  }
+
+  // 4. From assigned model
+  if (req.assigned_model) return req.assigned_model;
+
   return 'unassigned';
 }
 

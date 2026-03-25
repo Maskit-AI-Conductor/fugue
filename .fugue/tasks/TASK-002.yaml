@@ -1,0 +1,26 @@
+id: TASK-002
+title: "Snapshot & Reverse"
+requester: CEO
+assignees: []
+status: OPEN
+created_at: "2026-03-25T01:00:00Z"
+plan_file: "../../docs/requirements/02-snapshot-reverse.md"
+req_ids:
+  - BR-010
+  - BR-011
+  - BR-012
+  - BR-013
+  - BR-014
+  - BR-070
+  - BR-071
+  - BR-072
+  - BR-073
+  - BR-074
+  - BR-075
+  - BR-076
+  - BR-077
+  - BR-078
+  - BR-079
+  - BR-080
+  - BR-081
+escalations: []

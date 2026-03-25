@@ -26,7 +26,7 @@ const program = new Command();
 program
   .name('fugue')
   .description('Fugue — Conductor-based AI PMO for your terminal')
-  .version('0.6.0');
+  .version('0.7.0');
 
 program.addCommand(initCommand);
 program.addCommand(modelCommand);
@@ -45,6 +45,13 @@ program.addCommand(diagnoseCommand);
 program.addCommand(gateCommand);
 program.addCommand(deliverCommand);
 program.addCommand(workflowCommand);
+
+const mcpCommand = new Command('mcp')
+  .description('Start MCP server (for AI coding assistants)')
+  .action(async () => {
+    await import('./mcp/server.js');
+  });
+program.addCommand(mcpCommand);
 
 program.parseAsync(process.argv).catch((err) => {
   console.error(err);

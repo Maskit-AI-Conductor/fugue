@@ -1,0 +1,50 @@
+version: 2
+project_name: bpro
+scan:
+  include:
+    - '**/*.py'
+    - '**/*.ts'
+    - '**/*.tsx'
+    - '**/*.js'
+    - '**/*.jsx'
+    - '**/*.go'
+    - '**/*.rs'
+    - '**/*.java'
+    - '**/*.kt'
+  exclude:
+    - '**/node_modules/**'
+    - '**/.venv/**'
+    - '**/venv/**'
+    - '**/dist/**'
+    - '**/build/**'
+    - '**/__pycache__/**'
+    - '**/.bpro/**'
+    - '**/.git/**'
+created: '2026-03-25T00:20:35.309Z'
+conductor: claude-opus
+generation:
+  req_naming:
+    pattern: REQ-{area}-{seq:03d}
+    areas:
+      CORE: Core Identity
+      SNAP: Snapshot & Reverse
+      PLAN: Plan & Forward
+      AGNT: Agent Governance
+      MODL: Model Management
+      TASK: Task Workflow
+      DLVR: Deliverables & Audit
+      REPT: Reporting & Notifications
+      INFR: Infra & MCP
+      PMO: PMO Methodology
+  limits:
+    max_draft_per_confirmed: 5
+    max_total_draft: 200
+  priority_rules:
+    max_high_ratio: 0.3
+  code_ref_validation:
+    enabled: true
+    must_exist: true
+plan:
+  source: plans/01-core-identity_2026-03-25T11-24-30.md
+  imported_at: '2026-03-25T11:24:30.457Z'
+  original_path: /Users/baehoyeon/Documents/fugue/docs/requirements/01-core-identity.md

@@ -1,0 +1,16 @@
+id: TASK-001
+title: "Core Identity"
+requester: CEO
+assignees: []
+status: OPEN
+created_at: "2026-03-25T01:00:00Z"
+plan_file: "../../docs/requirements/01-core-identity.md"
+req_ids:
+  - BR-001
+  - BR-002
+  - BR-003
+  - BR-004
+  - BR-005
+  - BR-006
+  - BR-007
+escalations: []

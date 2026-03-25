@@ -1,0 +1,9 @@
+id: TASK-010
+title: "PMO Methodology Integration"
+requester: CEO
+assignees: []
+status: OPEN
+created_at: "2026-03-25T02:00:00Z"
+plan_file: "../../docs/requirements/10-pmo-methodology.md"
+req_ids: [FR-200, FR-201, FR-202, FR-203, FR-204, FR-205, FR-206, FR-207, FR-208, FR-209, FR-210, FR-211, FR-212, FR-213, FR-214, FR-215, FR-216, FR-217, FR-218, FR-219]
+escalations: []

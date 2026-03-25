@@ -160,14 +160,49 @@ planCommand
 
       spinner.succeed(`${reqsData.length} requirements extracted`);
 
-      // Build REQ array
+      // Build REQ array — continue numbering from existing specs
       const now = new Date().toISOString();
+      const existingSpecs = loadSpecs(fugueDir);
+
+      // Determine area prefix from config + plan source filename
+      const areas = config.generation?.req_naming?.areas;
+      let areaPrefix = '';
+      if (areas) {
+        const planFileName = path.basename(planSource ?? '').toLowerCase();
+        // Match by: area code in filename, or label words in filename
+        for (const [code, label] of Object.entries(areas)) {
+          const labelStr = String(label).toLowerCase();
+          const codeLC = code.toLowerCase();
+          // Split label into words and check if any word (3+ chars) appears in filename
+          const labelWords = labelStr.split(/[\s&/,]+/).filter(w => w.length >= 3);
+          const filenameMatch = labelWords.some(w => planFileName.includes(w));
+          if (planFileName.includes(codeLC) || filenameMatch) {
+            areaPrefix = code;
+            break;
+          }
+        }
+      }
+
+      // Find max existing number for this area (or global)
+      const idPattern = areaPrefix
+        ? new RegExp(`REQ-${areaPrefix}-(\\d+)`)
+        : /REQ-(\d+)/;
+      const maxExistingNum = existingSpecs.reduce((max, s) => {
+        const match = s.id.match(idPattern);
+        return match ? Math.max(max, parseInt(match[1], 10)) : max;
+      }, 0);
+      let nextNum = maxExistingNum + 1;
+
       const rawReqs: ReqSpec[] = [];
 
       for (const raw of reqsData) {
         if (!raw.id) continue;
+        const newId = areaPrefix
+          ? `REQ-${areaPrefix}-${String(nextNum).padStart(3, '0')}`
+          : `REQ-${String(nextNum).padStart(3, '0')}`;
+        nextNum++;
         rawReqs.push({
-          id: String(raw.id),
+          id: newId,
           title: String(raw.title ?? ''),
           priority: String(raw.priority ?? 'MEDIUM'),
           description: String(raw.description ?? ''),
@@ -417,6 +452,65 @@ planCommand
       console.log(`  ${chalk.dim('Next:')}`);
       console.log(`  ${chalk.cyan('fugue status')}            — check progress`);
       console.log(`  ${chalk.cyan('fugue audit --quick')}     — run first audit`);
+    } catch (err: unknown) {
+      printError(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+  });
+
+planCommand
+  .command('history <req-id>')
+  .description('View full history of a REQ (creation, feedback, status changes)')
+  .action(async (reqId: string) => {
+    try {
+      const fugueDir = requireFugueDir();
+      const reqs = loadSpecs(fugueDir);
+      const req = reqs.find(r => r.id === reqId);
+
+      if (!req) {
+        printError(`REQ not found: ${reqId}`);
+        process.exit(1);
+      }
+
+      console.log();
+      console.log(`  ${chalk.bold(req.id)}: ${req.title}`);
+      console.log(`  ${chalk.dim('-'.repeat(50))}`);
+      console.log(`  Priority:    ${req.priority}`);
+      console.log(`  Status:      ${req.status}`);
+      console.log(`  Description: ${req.description}`);
+      if (req.code_refs && req.code_refs.length > 0) {
+        console.log(`  Code refs:   ${req.code_refs.join(', ')}`);
+      }
+      if (req.test_refs && req.test_refs.length > 0) {
+        console.log(`  Test refs:   ${req.test_refs.join(', ')}`);
+      }
+      console.log();
+
+      // Timeline
+      console.log(`  ${chalk.bold('History')}`);
+      console.log(`  ${chalk.dim('-'.repeat(50))}`);
+
+      // Created
+      console.log(`  ${chalk.dim(req.created?.slice(0, 19) ?? '?')}  ${chalk.blue('CREATED')}  status: DRAFT`);
+
+      // Feedback entries
+      const feedbackList = (req.feedback as Array<Record<string, string>>) ?? [];
+      for (const fb of feedbackList) {
+        const date = fb.at?.slice(0, 19) ?? '?';
+        const actionColor = fb.action === 'accept' ? chalk.green : fb.action === 'reject' ? chalk.red : chalk.blue;
+        const from = fb.from ? chalk.dim(`by ${fb.from}`) : '';
+        console.log(`  ${chalk.dim(date)}  ${actionColor(fb.action.toUpperCase().padEnd(8))}  ${fb.message ?? ''} ${from}`);
+      }
+
+      // Confirmed/deprecated
+      if (req.confirmed_at) {
+        console.log(`  ${chalk.dim(String(req.confirmed_at).slice(0, 19))}  ${chalk.green('CONFIRMED')}`);
+      }
+      if (req.deprecated_at) {
+        console.log(`  ${chalk.dim(String(req.deprecated_at).slice(0, 19))}  ${chalk.red('DEPRECATED')}`);
+      }
+
+      console.log();
     } catch (err: unknown) {
       printError(err instanceof Error ? err.message : String(err));
       process.exit(1);
