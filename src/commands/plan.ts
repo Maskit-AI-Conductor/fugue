@@ -18,7 +18,8 @@ import {
 } from '../core/project.js';
 import { getConductorAdapter } from '../models/registry.js';
 import { createEmptyMatrix } from '../core/matrix.js';
-import { DECOMPOSE_SYSTEM_PROMPT, buildDecomposePrompt } from '../prompts/decompose.js';
+import { DECOMPOSE_SYSTEM_PROMPT, buildDecomposeSystemPrompt, buildDecomposePrompt } from '../prompts/decompose.js';
+import { postProcessReqs } from '../core/postprocess.js';
 import { printSuccess, printError, printInfo, printWarning, createSpinner, printReqTable } from '../utils/display.js';
 
 export const planCommand = new Command('plan')
@@ -139,8 +140,9 @@ planCommand
       let reqsData: Array<Record<string, unknown>>;
       try {
         const prompt = buildDecomposePrompt(docContent);
+        const systemPrompt = buildDecomposeSystemPrompt(config);
         reqsData = await adapter.generateJSON<Array<Record<string, unknown>>>(prompt, {
-          system: DECOMPOSE_SYSTEM_PROMPT,
+          system: systemPrompt,
           maxTokens: 4096,
           temperature: 0.2,
         });
@@ -158,13 +160,13 @@ planCommand
 
       spinner.succeed(`${reqsData.length} requirements extracted`);
 
-      // Save REQs
+      // Build REQ array
       const now = new Date().toISOString();
-      const saved: ReqSpec[] = [];
+      const rawReqs: ReqSpec[] = [];
 
       for (const raw of reqsData) {
         if (!raw.id) continue;
-        const req: ReqSpec = {
+        rawReqs.push({
           id: String(raw.id),
           title: String(raw.title ?? ''),
           priority: String(raw.priority ?? 'MEDIUM'),
@@ -177,7 +179,22 @@ planCommand
             file: planSource,
             section: String(raw.source_section ?? ''),
           },
-        };
+        });
+      }
+
+      // Post-process: dedup, validate code_refs, adjust priorities
+      const projectRoot = path.dirname(fugueDir);
+      const { reqs: processedReqs, stats } = postProcessReqs(rawReqs, projectRoot, config);
+
+      if (stats.merged > 0 || stats.priorityAdjusted > 0) {
+        printInfo(
+          `Post-process: ${stats.merged} merged, ${stats.invalidRefs} invalid refs removed, ${stats.priorityAdjusted} priorities adjusted`
+        );
+      }
+
+      // Save REQs
+      const saved: ReqSpec[] = [];
+      for (const req of processedReqs) {
         saveSpec(fugueDir, req);
         saved.push(req);
       }

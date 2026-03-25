@@ -9,6 +9,11 @@ Given a project's file structure and source code, you must:
 3. Assign appropriate model types (heavy reasoning vs lightweight parsing)
 4. Extract high-level architecture
 
+Additional rules:
+- Generate at most 10 agent roles (consolidate similar domains)
+- Each agent must have clearly non-overlapping scope (MECE)
+- Do NOT create separate agents for sub-areas of the same domain
+
 Output ONLY valid JSON matching this schema:
 {
   "domains": [

@@ -24,6 +24,29 @@ export const SUBDIRS = [
   'workflows',
 ];
 
+export interface GenerationConfig {
+  req_naming?: {
+    pattern?: string;  // "REQ-{area}-{seq:03d}"
+    areas?: Record<string, string>;  // { PUB: "Public", ADM: "Admin", ... }
+  };
+  limits?: {
+    max_draft_per_confirmed?: number;  // default 5
+    max_total_draft?: number;          // default 200
+  };
+  priority_rules?: {
+    max_high_ratio?: number;  // default 0.30
+  };
+  test_generation?: {
+    enabled?: boolean;          // default true
+    min_tc_per_req?: number;    // default 1
+    tc_naming?: string;         // "{req_id}-TC-{seq:02d}"
+  };
+  code_ref_validation?: {
+    enabled?: boolean;
+    must_exist?: boolean;
+  };
+}
+
 export interface FugueConfig {
   version: number;
   project_name: string;
@@ -38,6 +61,7 @@ export interface FugueConfig {
     imported_at?: string;
     original_path?: string;
   };
+  generation?: GenerationConfig;
   created: string;
   [key: string]: unknown;
 }

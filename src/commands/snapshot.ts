@@ -42,6 +42,7 @@ import { getConductorAdapter, getAdapter } from '../models/registry.js';
 import { runConductorAnalysis, extractRequirements } from '../agents/conductor.js';
 import { assignModels } from '../agents/aiops.js';
 import { saveAgentDef, appendAgentLog } from '../agents/runner.js';
+import { postProcessReqs } from '../core/postprocess.js';
 import { printSuccess, printError, printInfo, printWarning, createSpinner } from '../utils/display.js';
 import { minimatch } from '../utils/glob.js';
 import { emitEvent } from '../notifications/index.js';
@@ -441,8 +442,23 @@ async function runSnapshot(opts: { clean?: boolean }): Promise<void> {
       process.exit(1);
     }
 
+    // Post-process: dedup, validate code_refs, adjust priorities
+    const { reqs: processedReqs, stats: ppStats } = postProcessReqs(allReqs, root, config);
+
+    if (ppStats.merged > 0 || ppStats.priorityAdjusted > 0 || ppStats.invalidRefs > 0) {
+      console.log();
+      console.log(
+        `  ${chalk.blue('>')} Post-process: ${ppStats.merged} merged, ${ppStats.invalidRefs} invalid refs, ${ppStats.priorityAdjusted} priority adjusted`
+      );
+    }
+
+    // Re-assign sequential IDs after dedup
+    for (let i = 0; i < processedReqs.length; i++) {
+      processedReqs[i].id = `REQ-${String(i + 1).padStart(3, '0')}`;
+    }
+
     // 8. Save to staging — Step 4/4
-    for (const req of allReqs) {
+    for (const req of processedReqs) {
       saveStagingSpec(fugueDir, req);
     }
 
@@ -450,12 +466,12 @@ async function runSnapshot(opts: { clean?: boolean }): Promise<void> {
       timestamp: new Date().toISOString(),
       conductor: conductorAdapter.name,
       model_assignments: modelAssignmentsForMeta,
-      total_reqs: allReqs.length,
+      total_reqs: processedReqs.length,
     };
     saveStagingMeta(fugueDir, meta);
 
     console.log();
-    console.log(`${chalk.green('\u2714')} Step 4/4: ${allReqs.length} REQs saved to staging`);
+    console.log(`${chalk.green('\u2714')} Step 4/4: ${processedReqs.length} REQs saved to staging`);
 
     // 9. Show staging summary
     const diff = diffStagingVsSpecs(fugueDir);
@@ -469,8 +485,8 @@ async function runSnapshot(opts: { clean?: boolean }): Promise<void> {
     console.log();
 
     // Emit notification
-    await emitEvent(fugueDir, 'snapshot.complete', `Snapshot complete: ${allReqs.length} REQs extracted`, {
-      'REQs': String(allReqs.length),
+    await emitEvent(fugueDir, 'snapshot.complete', `Snapshot complete: ${processedReqs.length} REQs extracted`, {
+      'REQs': String(processedReqs.length),
       'Conductor': conductorAdapter.name,
     });
   } catch (err: unknown) {
