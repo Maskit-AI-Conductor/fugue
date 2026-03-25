@@ -79,12 +79,14 @@ export class AnthropicAdapter implements ModelAdapter {
     fs.writeFileSync(tmpFile, fullPrompt, 'utf-8');
 
     try {
-      // Try with model flag first, fallback to default model if it fails
+      // Use --bare to skip MCP/hooks/plugins initialization (much faster)
+      // --bare still uses subscription auth if no API key is set
       const modelFlag = this.model ? `--model ${this.model}` : '';
+      const bareFlag = '--bare';
       let stdout: string;
       try {
         const result = await execAsync(
-          `cat "${tmpFile}" | claude --print ${modelFlag}`,
+          `cat "${tmpFile}" | claude --print ${bareFlag} ${modelFlag}`,
           {
             encoding: 'utf-8',
             timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
@@ -94,17 +96,31 @@ export class AnthropicAdapter implements ModelAdapter {
         );
         stdout = result.stdout;
       } catch {
-        // Fallback: no model flag (use default)
-        const result = await execAsync(
-          `cat "${tmpFile}" | claude --print`,
-          {
-            encoding: 'utf-8',
-            timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
-            maxBuffer: 50 * 1024 * 1024,
-            shell: '/bin/bash',
-          },
-        );
-        stdout = result.stdout;
+        // Fallback: without --bare (in case --bare needs API key on some setups)
+        try {
+          const result = await execAsync(
+            `cat "${tmpFile}" | claude --print ${modelFlag}`,
+            {
+              encoding: 'utf-8',
+              timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
+              maxBuffer: 50 * 1024 * 1024,
+              shell: '/bin/bash',
+            },
+          );
+          stdout = result.stdout;
+        } catch {
+          // Last fallback: no model flag, no bare
+          const result = await execAsync(
+            `cat "${tmpFile}" | claude --print`,
+            {
+              encoding: 'utf-8',
+              timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
+              maxBuffer: 50 * 1024 * 1024,
+              shell: '/bin/bash',
+            },
+          );
+          stdout = result.stdout;
+        }
       }
       return stdout.trim();
     } catch (err: unknown) {
