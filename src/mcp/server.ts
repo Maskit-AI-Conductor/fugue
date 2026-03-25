@@ -12,7 +12,14 @@ import { handleRequest, getToolList } from './tools.js';
 
 let buffer = '';
 
+// Keep process alive — MCP server must stay running until parent kills it
+process.stdin.resume();
 process.stdin.setEncoding('utf-8');
+
+// Prevent Node from exiting when stdin closes (background mode)
+const keepAlive = setInterval(() => {}, 60000);
+process.on('SIGTERM', () => { clearInterval(keepAlive); process.exit(0); });
+process.on('SIGINT', () => { clearInterval(keepAlive); process.exit(0); });
 
 process.stdin.on('data', (chunk: string) => {
   buffer += chunk;
@@ -47,6 +54,12 @@ process.stdin.on('data', (chunk: string) => {
   }
 });
 
+// Don't exit on stdin close — wait for SIGTERM
+process.stdin.on('end', () => {
+  // MCP client closed stdin, exit gracefully
+  process.exit(0);
+});
+
 async function handleJsonRpc(request: { id?: unknown; method: string; params?: Record<string, unknown> }) {
   const { id, method, params } = request;
 
@@ -62,7 +75,7 @@ async function handleJsonRpc(request: { id?: unknown; method: string; params?: R
           },
           serverInfo: {
             name: 'fugue',
-            version: '0.6.0',
+            version: '0.7.0',
           },
         };
         break;
@@ -106,6 +119,3 @@ function sendResponse(id: unknown, result: unknown, error?: { code: number; mess
   const header = `Content-Length: ${Buffer.byteLength(body)}\r\n\r\n`;
   process.stdout.write(header + body);
 }
-
-// Log startup to stderr (not stdout, to keep protocol clean)
-process.stderr.write('[fugue-mcp] Server started\n');
