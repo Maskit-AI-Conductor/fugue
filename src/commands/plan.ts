@@ -193,30 +193,183 @@ planCommand
   });
 
 planCommand
+  .command('feedback <req-id> [message]')
+  .description('Give feedback on a REQ (accept, reject, or comment)')
+  .option('--accept', 'Accept this REQ')
+  .option('--reject', 'Reject this REQ (will be DEPRECATED on confirm)')
+  .option('--from <name>', 'Feedback author name')
+  .action(async (reqId: string, message?: string, opts?: { accept?: boolean; reject?: boolean; from?: string }) => {
+    try {
+      const fugueDir = requireFugueDir();
+      const reqs = loadSpecs(fugueDir);
+      const req = reqs.find(r => r.id === reqId);
+
+      if (!req) {
+        printError(`REQ not found: ${reqId}`);
+        process.exit(1);
+      }
+
+      // Determine action
+      let action: 'accept' | 'reject' | 'comment';
+      if (opts?.accept) {
+        action = 'accept';
+      } else if (opts?.reject) {
+        action = 'reject';
+      } else {
+        action = 'comment';
+      }
+
+      if (action === 'comment' && !message) {
+        printError('Provide a comment message: fugue plan feedback REQ-001 "your feedback"');
+        process.exit(1);
+      }
+
+      // Append feedback
+      const feedbackList = (req.feedback as Array<Record<string, string>>) ?? [];
+      feedbackList.push({
+        from: opts?.from ?? 'reviewer',
+        action,
+        message: message ?? (action === 'accept' ? 'Accepted' : 'Rejected'),
+        at: new Date().toISOString(),
+      });
+      req.feedback = feedbackList;
+
+      // Mark status
+      if (action === 'reject') {
+        req.status = 'REJECTED';
+      } else if (action === 'accept') {
+        req.status = 'ACCEPTED';
+      }
+      // comment leaves status as-is
+
+      saveSpec(fugueDir, req);
+
+      const icon = action === 'accept' ? chalk.green('✔') : action === 'reject' ? chalk.red('✖') : chalk.blue('💬');
+      const label = action === 'accept' ? 'accepted' : action === 'reject' ? 'rejected' : 'commented';
+      console.log(`  ${icon} ${reqId}: ${label}${message ? ` — ${message}` : ''}`);
+    } catch (err: unknown) {
+      printError(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+  });
+
+planCommand
+  .command('review')
+  .description('Interactive review: accept/reject/comment each DRAFT REQ')
+  .option('--from <name>', 'Reviewer name')
+  .action(async (opts: { from?: string }) => {
+    try {
+      const fugueDir = requireFugueDir();
+      const reqs = loadSpecs(fugueDir);
+      const drafts = reqs.filter(r => r.status === 'DRAFT');
+
+      if (drafts.length === 0) {
+        printWarning('No DRAFT REQs to review.');
+        return;
+      }
+
+      const { select, input } = await import('@inquirer/prompts');
+
+      console.log();
+      console.log(`  ${chalk.bold(`Reviewing ${drafts.length} REQs`)}`);
+      console.log();
+
+      let accepted = 0, rejected = 0, commented = 0;
+
+      for (const req of drafts) {
+        console.log(`  ${chalk.cyan(req.id)} ${chalk.bold(req.title)}`);
+        if (req.description) console.log(`  ${chalk.dim(req.description)}`);
+        console.log(`  Priority: ${req.priority}`);
+        console.log();
+
+        const action = await select({
+          message: `${req.id}:`,
+          choices: [
+            { name: 'accept', value: 'accept' },
+            { name: 'reject', value: 'reject' },
+            { name: 'comment (add feedback, keep DRAFT)', value: 'comment' },
+            { name: 'skip', value: 'skip' },
+          ],
+        });
+
+        if (action === 'skip') continue;
+
+        let message = '';
+        if (action === 'reject' || action === 'comment') {
+          message = await input({ message: 'Reason:' });
+        }
+
+        const feedbackList = (req.feedback as Array<Record<string, string>>) ?? [];
+        feedbackList.push({
+          from: opts.from ?? 'reviewer',
+          action,
+          message: message || (action === 'accept' ? 'Accepted' : 'Rejected'),
+          at: new Date().toISOString(),
+        });
+        req.feedback = feedbackList;
+
+        if (action === 'accept') { req.status = 'ACCEPTED'; accepted++; }
+        else if (action === 'reject') { req.status = 'REJECTED'; rejected++; }
+        else { commented++; }
+
+        saveSpec(fugueDir, req);
+      }
+
+      console.log();
+      printSuccess(`Review complete: ${accepted} accepted, ${rejected} rejected, ${commented} commented`);
+      if (accepted > 0 || rejected > 0) {
+        console.log(`  ${chalk.dim('Next:')} ${chalk.cyan('fugue plan confirm')} — finalize accepted REQs`);
+      }
+    } catch (err: unknown) {
+      if ((err as { name?: string })?.name === 'ExitPromptError') return;
+      printError(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+  });
+
+planCommand
   .command('confirm')
-  .description('Confirm all DRAFT REQs and start development phase')
+  .description('Confirm accepted REQs, deprecate rejected ones')
   .action(async () => {
     try {
       const fugueDir = requireFugueDir();
       const reqs = loadSpecs(fugueDir);
-      const draftReqs = reqs.filter((r) => r.status === 'DRAFT');
 
-      if (draftReqs.length === 0) {
-        printWarning('No DRAFT requirements to confirm.');
-        const confirmed = reqs.filter((r) => r.status === 'CONFIRMED');
+      const accepted = reqs.filter(r => r.status === 'ACCEPTED');
+      const rejected = reqs.filter(r => r.status === 'REJECTED');
+      const drafts = reqs.filter(r => r.status === 'DRAFT');
+      const toConfirm = [...accepted, ...drafts]; // ACCEPTED + remaining DRAFT
+
+      if (toConfirm.length === 0 && rejected.length === 0) {
+        printWarning('No requirements to confirm.');
+        const confirmed = reqs.filter(r => r.status === 'CONFIRMED');
         if (confirmed.length > 0) {
           printInfo(`${confirmed.length} REQs already confirmed.`);
         }
         return;
       }
 
-      printReqTable(draftReqs, `Confirming ${draftReqs.length} REQs`);
+      // Show summary
+      console.log();
+      if (accepted.length > 0) {
+        console.log(`  ${chalk.green('✔')} ${accepted.length} accepted — will be CONFIRMED`);
+      }
+      if (drafts.length > 0) {
+        console.log(`  ${chalk.blue('○')} ${drafts.length} unreviewed (DRAFT) — will also be CONFIRMED`);
+      }
+      if (rejected.length > 0) {
+        console.log(`  ${chalk.red('✖')} ${rejected.length} rejected — will be DEPRECATED`);
+        for (const r of rejected) {
+          const fb = (r.feedback as Array<Record<string, string>>)?.slice(-1)[0];
+          console.log(`    ${chalk.dim(r.id)}: ${r.title} ${fb?.message ? chalk.dim(`— ${fb.message}`) : ''}`);
+        }
+      }
       console.log();
 
       // Prompt for confirmation
       const { confirm } = await import('@inquirer/prompts');
       const ok = await confirm({
-        message: `Confirm all ${draftReqs.length} requirements?`,
+        message: `Confirm ${toConfirm.length} REQs${rejected.length > 0 ? `, deprecate ${rejected.length}` : ''}?`,
         default: true,
       });
 
@@ -225,19 +378,24 @@ planCommand
         return;
       }
 
-      // Update status
+      // Update statuses
       const now = new Date().toISOString();
-      for (const req of draftReqs) {
+      for (const req of toConfirm) {
         req.status = 'CONFIRMED';
         req.confirmed_at = now;
         saveSpec(fugueDir, req);
       }
+      for (const req of rejected) {
+        req.status = 'DEPRECATED';
+        req.deprecated_at = now;
+        saveSpec(fugueDir, req);
+      }
 
-      // Create traceability matrix
-      const matrix = createEmptyMatrix(draftReqs);
+      // Create traceability matrix (only for confirmed)
+      const matrix = createEmptyMatrix(toConfirm);
       saveMatrix(fugueDir, matrix);
 
-      printSuccess(`${draftReqs.length} REQs confirmed. Development phase started.`);
+      printSuccess(`${toConfirm.length} REQs confirmed${rejected.length > 0 ? `, ${rejected.length} deprecated` : ''}. Development phase started.`);
       console.log();
       console.log(`  ${chalk.dim('Next:')}`);
       console.log(`  ${chalk.cyan('fugue status')}            — check progress`);

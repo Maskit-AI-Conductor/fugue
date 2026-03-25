@@ -26,7 +26,7 @@ const program = new Command();
 program
   .name('fugue')
   .description('Fugue — Conductor-based AI PMO for your terminal')
-  .version('0.5.3');
+  .version('0.5.4');
 
 program.addCommand(initCommand);
 program.addCommand(modelCommand);
