@@ -18,13 +18,14 @@ import { notifyCommand } from './commands/notify.js';
 import { setupCommand } from './commands/setup-cmd.js';
 import { taskCommand } from './commands/task.js';
 import { adminCommand } from './commands/admin.js';
+import { diagnoseCommand, gateCommand, deliverCommand } from './commands/diagnose.js';
 
 const program = new Command();
 
 program
   .name('fugue')
   .description('Fugue — Conductor-based AI PMO for your terminal')
-  .version('0.3.1');
+  .version('0.4.0');
 
 program.addCommand(initCommand);
 program.addCommand(modelCommand);
@@ -39,6 +40,9 @@ program.addCommand(notifyCommand);
 program.addCommand(setupCommand);
 program.addCommand(taskCommand);
 program.addCommand(adminCommand);
+program.addCommand(diagnoseCommand);
+program.addCommand(gateCommand);
+program.addCommand(deliverCommand);
 
 program.parseAsync(process.argv).catch((err) => {
   console.error(err);
