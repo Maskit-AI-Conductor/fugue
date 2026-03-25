@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 const execAsync = promisify(exec);
 import type { ModelAdapter, GenerateOptions, GenerateResult } from './adapter.js';
 import { parseJsonResponse } from '../utils/json-repair.js';
+import { getShell, createPipeCommand, createTempFilePath } from '../utils/platform.js';
 
 export class OpenAIAdapter implements ModelAdapter {
   name: string;
@@ -72,18 +73,18 @@ export class OpenAIAdapter implements ModelAdapter {
       ? `${options.system}\n\n${prompt}`
       : prompt;
 
-    const tmpFile = `/tmp/fugue-codex-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.txt`;
+    const tmpFile = createTempFilePath('fugue-codex');
     const { writeFileSync, unlinkSync } = await import('node:fs');
     writeFileSync(tmpFile, fullPrompt, 'utf-8');
 
     try {
       const { stdout } = await execAsync(
-        `cat "${tmpFile}" | codex --print --model ${this.model}`,
+        createPipeCommand(tmpFile, `codex --print --model ${this.model}`),
         {
           encoding: 'utf-8',
           timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
           maxBuffer: 50 * 1024 * 1024,
-          shell: '/bin/bash',
+          shell: getShell(),
         },
       );
       return stdout.trim();

@@ -26,7 +26,8 @@ async function detectModels(): Promise<DetectedModel[]> {
 
   // 1. Claude CLI
   try {
-    execSync('which claude', { stdio: 'pipe' });
+    const cmd = process.platform === 'win32' ? 'where claude' : 'which claude';
+    execSync(cmd, { stdio: 'pipe' });
     detected.push(
       { name: 'claude-opus', provider: 'anthropic', model: 'claude-opus', subscription: true, available: true, detail: 'claude CLI found' },
       { name: 'claude-sonnet', provider: 'anthropic', model: 'claude-sonnet', subscription: true, available: true, detail: 'claude CLI found' },
@@ -35,7 +36,8 @@ async function detectModels(): Promise<DetectedModel[]> {
 
   // 2. Codex CLI
   try {
-    execSync('which codex', { stdio: 'pipe' });
+    const cmd = process.platform === 'win32' ? 'where codex' : 'which codex';
+    execSync(cmd, { stdio: 'pipe' });
     detected.push(
       { name: 'codex', provider: 'openai', model: 'codex', subscription: true, available: true, detail: 'codex CLI found' },
     );
@@ -43,7 +45,8 @@ async function detectModels(): Promise<DetectedModel[]> {
 
   // 3. Gemini CLI
   try {
-    execSync('which gemini', { stdio: 'pipe' });
+    const cmd = process.platform === 'win32' ? 'where gemini' : 'which gemini';
+    execSync(cmd, { stdio: 'pipe' });
     detected.push(
       { name: 'gemini-pro', provider: 'gemini', model: 'gemini-pro', subscription: true, available: true, detail: 'gemini CLI found' },
     );

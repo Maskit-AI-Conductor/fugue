@@ -14,6 +14,7 @@ import path from 'node:path';
 const execAsync = promisify(exec);
 import type { ModelAdapter, GenerateOptions, GenerateResult } from './adapter.js';
 import { parseJsonResponse } from '../utils/json-repair.js';
+import { getShell, createPipeCommand } from '../utils/platform.js';
 
 /** Map friendly names to actual model IDs */
 const MODEL_MAP: Record<string, string> = {
@@ -81,25 +82,25 @@ export class AnthropicAdapter implements ModelAdapter {
 
     const modelFlag = this.model ? `--model ${this.model}` : '';
     const timeoutMs = (options?.timeout ?? this.defaultTimeout) * 1000;
-    const execOpts = { encoding: 'utf-8' as const, timeout: timeoutMs, maxBuffer: 50 * 1024 * 1024, shell: '/bin/bash' };
+    const execOpts = { encoding: 'utf-8' as const, timeout: timeoutMs, maxBuffer: 50 * 1024 * 1024, shell: getShell() };
 
     try {
       // 1. Try --bare + model (fastest, needs API key)
       if (process.env.ANTHROPIC_API_KEY) {
         try {
-          const r = await execAsync(`cat "${tmpFile}" | claude --print --bare ${modelFlag}`, execOpts);
+          const r = await execAsync(createPipeCommand(tmpFile, `claude --print --bare ${modelFlag}`), execOpts);
           if (r.stdout.trim()) return r.stdout.trim();
         } catch { /* fall through */ }
       }
 
       // 2. Try --print + model (subscription mode, may be slow with MCP)
       try {
-        const r = await execAsync(`cat "${tmpFile}" | claude --print ${modelFlag}`, execOpts);
+        const r = await execAsync(createPipeCommand(tmpFile, `claude --print ${modelFlag}`), execOpts);
         if (r.stdout.trim()) return r.stdout.trim();
       } catch { /* fall through */ }
 
       // 3. Try --print only (no model flag)
-      const r = await execAsync(`cat "${tmpFile}" | claude --print`, execOpts);
+      const r = await execAsync(createPipeCommand(tmpFile, 'claude --print'), execOpts);
       return r.stdout.trim();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
