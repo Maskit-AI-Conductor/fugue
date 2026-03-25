@@ -44,6 +44,7 @@ import { assignModels } from '../agents/aiops.js';
 import { saveAgentDef, appendAgentLog } from '../agents/runner.js';
 import { printSuccess, printError, printInfo, printWarning, createSpinner } from '../utils/display.js';
 import { minimatch } from '../utils/glob.js';
+import { emitEvent } from '../notifications/index.js';
 
 const MAX_FILE_SIZE = 50_000;
 const MAX_BATCH_CHARS = 15_000;
@@ -364,6 +365,12 @@ async function runSnapshot(opts: { clean?: boolean }): Promise<void> {
     console.log(`    ${chalk.cyan('bpro snapshot apply')}    \u2014 accept all changes`);
     console.log(`    ${chalk.cyan('bpro snapshot discard')}  \u2014 discard and keep current`);
     console.log();
+
+    // Emit notification
+    await emitEvent(bproDir, 'snapshot.complete', `Snapshot complete: ${allReqs.length} REQs extracted`, {
+      'REQs': String(allReqs.length),
+      'Conductor': conductorAdapter.name,
+    });
   } catch (err: unknown) {
     printError(err instanceof Error ? err.message : String(err));
     process.exit(1);

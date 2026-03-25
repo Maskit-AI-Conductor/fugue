@@ -4,7 +4,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import type { ModelAdapter, GenerateOptions } from './adapter.js';
+import type { ModelAdapter, GenerateOptions, GenerateResult } from './adapter.js';
 import { parseJsonResponse } from '../utils/json-repair.js';
 
 export class GeminiAdapter implements ModelAdapter {
@@ -37,10 +37,22 @@ export class GeminiAdapter implements ModelAdapter {
   }
 
   async generate(prompt: string, options?: GenerateOptions): Promise<string> {
+    const result = await this.generateWithUsage(prompt, options);
+    return result.text;
+  }
+
+  async generateWithUsage(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
     if (this.subscription) {
-      return this.generateViaCli(prompt, options);
+      return this.generateViaCliWithUsage(prompt, options);
     }
-    return this.generateViaApi(prompt, options);
+    return this.generateViaApiWithUsage(prompt, options);
+  }
+
+  private generateViaCliWithUsage(prompt: string, options?: GenerateOptions): GenerateResult {
+    const text = this.generateViaCli(prompt, options);
+    const tokens_in = Math.ceil(prompt.length / 4);
+    const tokens_out = Math.ceil(text.length / 4);
+    return { text, tokens_in, tokens_out };
   }
 
   private generateViaCli(prompt: string, options?: GenerateOptions): string {
@@ -67,6 +79,11 @@ export class GeminiAdapter implements ModelAdapter {
   }
 
   private async generateViaApi(prompt: string, options?: GenerateOptions): Promise<string> {
+    const result = await this.generateViaApiWithUsage(prompt, options);
+    return result.text;
+  }
+
+  private async generateViaApiWithUsage(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
     if (!this.apiKey) {
       throw new Error('No API key. Use subscription mode or set GOOGLE_API_KEY.');
     }
@@ -109,8 +126,13 @@ export class GeminiAdapter implements ModelAdapter {
 
       const data = await resp.json() as {
         candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
       };
-      return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      return {
+        text: data.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
+        tokens_in: data.usageMetadata?.promptTokenCount,
+        tokens_out: data.usageMetadata?.candidatesTokenCount,
+      };
     } catch (err: unknown) {
       clearTimeout(timer);
       if (err instanceof Error && err.name === 'AbortError') {

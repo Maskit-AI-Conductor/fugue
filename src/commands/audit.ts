@@ -18,6 +18,7 @@ import { AUDIT_SYSTEM_PROMPT, buildAuditPrompt } from '../prompts/audit.js';
 import { appendAgentLog } from '../agents/runner.js';
 import { printSuccess, printError, printWarning, printInfo, createSpinner } from '../utils/display.js';
 import { saveYaml } from '../utils/yaml.js';
+import { emitEvent } from '../notifications/index.js';
 
 interface AuditResult {
   id: string;
@@ -176,6 +177,13 @@ export const auditCommand = new Command('audit')
 
       console.log();
       console.log(`  ${chalk.dim(`Saved to .bpro/reports/audit-${ts}.yaml`)}`);
+
+      // Emit notification
+      const totalIssues = Object.values(auditResult.summary).reduce((a, b) => a + (b as number), 0);
+      await emitEvent(bproDir, 'audit.complete', `Audit complete`, {
+        Summary: Object.entries(auditResult.summary).map(([k, v]) => `${k}:${v}`).join(' '),
+        'Total Items': String(totalIssues),
+      });
     } catch (err: unknown) {
       printError(err instanceof Error ? err.message : String(err));
       process.exit(1);

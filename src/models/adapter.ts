@@ -10,6 +10,13 @@ export interface GenerateOptions {
   timeout?: number;
 }
 
+/** Result of a generate call, including token usage. */
+export interface GenerateResult {
+  text: string;
+  tokens_in?: number;
+  tokens_out?: number;
+}
+
 export interface ModelAdapter {
   /** Display name (e.g. "ollama:qwen2.5:7b") */
   name: string;
@@ -19,6 +26,9 @@ export interface ModelAdapter {
 
   /** Generate text response */
   generate(prompt: string, options?: GenerateOptions): Promise<string>;
+
+  /** Generate text response with token usage info */
+  generateWithUsage(prompt: string, options?: GenerateOptions): Promise<GenerateResult>;
 
   /** Generate and parse JSON response */
   generateJSON<T = unknown>(prompt: string, options?: GenerateOptions): Promise<T>;

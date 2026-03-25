@@ -2,7 +2,7 @@
  * Ollama adapter — local SLM via Ollama API.
  */
 
-import type { ModelAdapter, GenerateOptions } from './adapter.js';
+import type { ModelAdapter, GenerateOptions, GenerateResult } from './adapter.js';
 import { parseJsonResponse } from '../utils/json-repair.js';
 
 export class OllamaAdapter implements ModelAdapter {
@@ -32,6 +32,11 @@ export class OllamaAdapter implements ModelAdapter {
   }
 
   async generate(prompt: string, options?: GenerateOptions): Promise<string> {
+    const result = await this.generateWithUsage(prompt, options);
+    return result.text;
+  }
+
+  async generateWithUsage(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
     const timeout = (options?.timeout ?? this.defaultTimeout) * 1000;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
@@ -58,8 +63,16 @@ export class OllamaAdapter implements ModelAdapter {
         throw new Error(`Ollama API error ${resp.status}: ${text}`);
       }
 
-      const data = await resp.json() as { response?: string };
-      return data.response ?? '';
+      const data = await resp.json() as {
+        response?: string;
+        prompt_eval_count?: number;
+        eval_count?: number;
+      };
+      return {
+        text: data.response ?? '',
+        tokens_in: data.prompt_eval_count,
+        tokens_out: data.eval_count,
+      };
     } catch (err: unknown) {
       clearTimeout(timer);
       if (err instanceof Error && err.name === 'AbortError') {

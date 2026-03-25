@@ -15,6 +15,8 @@ export interface AgentLog {
   completed_at: string;
   status: 'success' | 'failure' | 'partial';
   output_summary: string;
+  tokens_in?: number;
+  tokens_out?: number;
   details?: unknown;
 }
 

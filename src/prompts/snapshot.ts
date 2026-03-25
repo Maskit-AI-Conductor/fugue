@@ -34,23 +34,38 @@ Output ONLY valid JSON matching this schema:
   ]
 }`;
 
+/**
+ * Build the conductor analysis prompt.
+ * IMPORTANT: only send file paths + first 5 lines of each file (not full source).
+ * Full source is sent later to domain analysts, not conductor.
+ */
 export function buildSnapshotPrompt(
   files: Array<{ path: string; content: string }>,
   projectName: string,
 ): string {
   const fileList = files.map((f) => f.path).join('\n');
-  const codeBlocks = files
-    .map((f) => `--- ${f.path} ---\n${f.content}`)
+
+  // Send only file path + first few lines as preview (keep prompt small)
+  const previews = files
+    .map((f) => {
+      const lines = f.content.split('\n');
+      const preview = lines.slice(0, 5).join('\n');
+      return `--- ${f.path} (${lines.length} lines) ---\n${preview}`;
+    })
     .join('\n\n');
 
-  return `Analyze this project "${projectName}":
+  return `Analyze this project "${projectName}" (${files.length} files):
 
 File structure:
 ${fileList}
 
-Source code:
-${codeBlocks}
+File previews (first 5 lines each):
+${previews}
 
-Identify domains, architecture, and define agent roles for analysis.
+Based on the file structure, naming conventions, and previews, identify:
+1. Main domains/modules
+2. Architecture type
+3. Agent roles needed for detailed analysis
+
 Return ONLY valid JSON.`;
 }

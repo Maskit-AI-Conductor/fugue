@@ -4,7 +4,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import type { ModelAdapter, GenerateOptions } from './adapter.js';
+import type { ModelAdapter, GenerateOptions, GenerateResult } from './adapter.js';
 import { parseJsonResponse } from '../utils/json-repair.js';
 
 export class OpenAIAdapter implements ModelAdapter {
@@ -45,10 +45,23 @@ export class OpenAIAdapter implements ModelAdapter {
   }
 
   async generate(prompt: string, options?: GenerateOptions): Promise<string> {
+    const result = await this.generateWithUsage(prompt, options);
+    return result.text;
+  }
+
+  async generateWithUsage(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
     if (this.subscription) {
-      return this.generateViaCli(prompt, options);
+      return this.generateViaCliWithUsage(prompt, options);
     }
-    return this.generateViaApi(prompt, options);
+    return this.generateViaApiWithUsage(prompt, options);
+  }
+
+  private generateViaCliWithUsage(prompt: string, options?: GenerateOptions): GenerateResult {
+    const text = this.generateViaCli(prompt, options);
+    // CLI subscription: estimate tokens from text length (~4 chars per token)
+    const tokens_in = Math.ceil(prompt.length / 4);
+    const tokens_out = Math.ceil(text.length / 4);
+    return { text, tokens_in, tokens_out };
   }
 
   private generateViaCli(prompt: string, options?: GenerateOptions): string {
@@ -75,6 +88,11 @@ export class OpenAIAdapter implements ModelAdapter {
   }
 
   private async generateViaApi(prompt: string, options?: GenerateOptions): Promise<string> {
+    const result = await this.generateViaApiWithUsage(prompt, options);
+    return result.text;
+  }
+
+  private async generateViaApiWithUsage(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
     if (!this.apiKey) {
       throw new Error('No API key. Use subscription mode or set OPENAI_API_KEY.');
     }
@@ -116,8 +134,13 @@ export class OpenAIAdapter implements ModelAdapter {
 
       const data = await resp.json() as {
         choices?: Array<{ message?: { content?: string } }>;
+        usage?: { prompt_tokens?: number; completion_tokens?: number };
       };
-      return data.choices?.[0]?.message?.content ?? '';
+      return {
+        text: data.choices?.[0]?.message?.content ?? '',
+        tokens_in: data.usage?.prompt_tokens,
+        tokens_out: data.usage?.completion_tokens,
+      };
     } catch (err: unknown) {
       clearTimeout(timer);
       if (err instanceof Error && err.name === 'AbortError') {

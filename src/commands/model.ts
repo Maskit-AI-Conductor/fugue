@@ -2,12 +2,15 @@
  * bpro model — Model registry management with interactive selection.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { select, input, confirm } from '@inquirer/prompts';
 import { requireBproDir, loadModels, saveModelsRaw, type ModelEntry } from '../core/project.js';
 import { parseModelName, createAdapter } from '../models/registry.js';
 import { printSuccess, printError, printInfo, createSpinner } from '../utils/display.js';
+import type { AgentLog } from '../agents/runner.js';
 
 /** Preset models that users can choose from. */
 const MODEL_PRESETS = [
@@ -250,3 +253,132 @@ modelCommand
       process.exit(1);
     }
   });
+
+/** Cost per 1K input tokens by provider. */
+const COST_PER_1K_INPUT: Record<string, number> = {
+  anthropic: 0.015,
+  openai: 0.005,
+  gemini: 0.00035,
+  ollama: 0,
+};
+
+/** Cost per 1K output tokens by provider (typically ~3-5x input). */
+const COST_PER_1K_OUTPUT: Record<string, number> = {
+  anthropic: 0.075,
+  openai: 0.015,
+  gemini: 0.0014,
+  ollama: 0,
+};
+
+interface ModelUsageRow {
+  model: string;
+  provider: string;
+  calls: number;
+  tokens_in: number;
+  tokens_out: number;
+}
+
+modelCommand
+  .command('usage')
+  .description('Show token usage and estimated cost per model')
+  .action(async () => {
+    try {
+      const bproDir = requireBproDir();
+
+      // Read all .jsonl log files
+      const logsDir = path.join(bproDir, 'logs');
+      if (!fs.existsSync(logsDir)) {
+        printInfo('No agent logs found. Run agent tasks first.');
+        return;
+      }
+
+      const logFiles = fs.readdirSync(logsDir).filter(f => f.endsWith('.jsonl'));
+      if (logFiles.length === 0) {
+        printInfo('No agent logs found. Run agent tasks first.');
+        return;
+      }
+
+      const usageMap = new Map<string, ModelUsageRow>();
+
+      for (const file of logFiles) {
+        const content = fs.readFileSync(path.join(logsDir, file), 'utf-8');
+        const lines = content.trim().split('\n').filter(Boolean);
+        for (const line of lines) {
+          try {
+            const log = JSON.parse(line) as AgentLog;
+            if (!log.model) continue;
+
+            const existing = usageMap.get(log.model);
+            const tokIn = log.tokens_in ?? 0;
+            const tokOut = log.tokens_out ?? 0;
+
+            if (existing) {
+              existing.calls++;
+              existing.tokens_in += tokIn;
+              existing.tokens_out += tokOut;
+            } else {
+              // Determine provider from model name
+              const parsed = parseModelName(log.model);
+              usageMap.set(log.model, {
+                model: log.model,
+                provider: parsed.provider,
+                calls: 1,
+                tokens_in: tokIn,
+                tokens_out: tokOut,
+              });
+            }
+          } catch {
+            // skip invalid lines
+          }
+        }
+      }
+
+      if (usageMap.size === 0) {
+        printInfo('No model usage data found in logs.');
+        return;
+      }
+
+      const rows = [...usageMap.values()].sort((a, b) => b.tokens_in - a.tokens_in);
+
+      let totalCalls = 0;
+      let totalIn = 0;
+      let totalOut = 0;
+      let totalCost = 0;
+
+      console.log();
+      console.log(`  ${chalk.bold('Model Usage')}`);
+      console.log(`  ${chalk.dim('\u2500'.repeat(70))}`);
+      console.log(
+        `  ${chalk.dim(pad('Model', 25))}${chalk.dim(pad('Calls', 8))}${chalk.dim(pad('Tokens In', 12))}${chalk.dim(pad('Tokens Out', 12))}${chalk.dim('Est. Cost')}`,
+      );
+      console.log(`  ${chalk.dim('\u2500'.repeat(70))}`);
+
+      for (const row of rows) {
+        const costIn = (row.tokens_in / 1000) * (COST_PER_1K_INPUT[row.provider] ?? 0);
+        const costOut = (row.tokens_out / 1000) * (COST_PER_1K_OUTPUT[row.provider] ?? 0);
+        const cost = costIn + costOut;
+
+        totalCalls += row.calls;
+        totalIn += row.tokens_in;
+        totalOut += row.tokens_out;
+        totalCost += cost;
+
+        console.log(
+          `  ${chalk.cyan(pad(row.model, 25))}${pad(String(row.calls), 8)}${pad(row.tokens_in.toLocaleString(), 12)}${pad(row.tokens_out.toLocaleString(), 12)}${cost > 0 ? `$${cost.toFixed(2)}` : chalk.dim('$0.00')}`,
+        );
+      }
+
+      console.log(`  ${chalk.dim('\u2500'.repeat(70))}`);
+      console.log(
+        `  ${chalk.bold(pad('Total', 25))}${pad(String(totalCalls), 8)}${pad(totalIn.toLocaleString(), 12)}${pad(totalOut.toLocaleString(), 12)}${totalCost > 0 ? chalk.bold(`$${totalCost.toFixed(2)}`) : chalk.dim('$0.00')}`,
+      );
+      console.log();
+    } catch (err: unknown) {
+      printError(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+  });
+
+function pad(s: string, width: number): string {
+  return s.padEnd(width);
+}

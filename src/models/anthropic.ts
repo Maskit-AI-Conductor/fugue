@@ -6,7 +6,10 @@
  */
 
 import { execSync } from 'node:child_process';
-import type { ModelAdapter, GenerateOptions } from './adapter.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import type { ModelAdapter, GenerateOptions, GenerateResult } from './adapter.js';
 import { parseJsonResponse } from '../utils/json-repair.js';
 
 /** Map friendly names to actual model IDs */
@@ -46,40 +49,59 @@ export class AnthropicAdapter implements ModelAdapter {
   }
 
   async generate(prompt: string, options?: GenerateOptions): Promise<string> {
+    const result = await this.generateWithUsage(prompt, options);
+    return result.text;
+  }
+
+  async generateWithUsage(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
     if (this.subscription) {
-      return this.generateViaCli(prompt, options);
+      return this.generateViaCliWithUsage(prompt, options);
     }
-    return this.generateViaApi(prompt, options);
+    return this.generateViaApiWithUsage(prompt, options);
+  }
+
+  private generateViaCliWithUsage(prompt: string, options?: GenerateOptions): GenerateResult {
+    const text = this.generateViaCli(prompt, options);
+    // CLI subscription: estimate tokens from text length (~4 chars per token)
+    const tokens_in = Math.ceil(prompt.length / 4);
+    const tokens_out = Math.ceil(text.length / 4);
+    return { text, tokens_in, tokens_out };
   }
 
   private generateViaCli(prompt: string, options?: GenerateOptions): string {
-    const systemArg = options?.system ? `--system-prompt "${options.system.replace(/"/g, '\\"')}"` : '';
-    const modelArg = `--model ${this.model}`;
-
-    // Use claude CLI with --print flag for non-interactive output
     const fullPrompt = options?.system
       ? `${options.system}\n\n${prompt}`
       : prompt;
 
+    // Write prompt to temp file to avoid stdin pipe issues with large prompts
+    const tmpFile = path.join(os.tmpdir(), `bpro-prompt-${Date.now()}.txt`);
+    fs.writeFileSync(tmpFile, fullPrompt, 'utf-8');
+
     try {
       const result = execSync(
-        `claude --print ${modelArg} --max-tokens ${options?.maxTokens ?? 4096}`,
+        `cat "${tmpFile}" | claude --print --model ${this.model}`,
         {
-          input: fullPrompt,
           encoding: 'utf-8',
           timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
-          maxBuffer: 10 * 1024 * 1024,
-          stdio: ['pipe', 'pipe', 'pipe'],
+          maxBuffer: 50 * 1024 * 1024,
+          shell: '/bin/bash',
         },
       );
       return result.trim();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(`Claude CLI failed: ${msg}`);
+    } finally {
+      try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
     }
   }
 
   private async generateViaApi(prompt: string, options?: GenerateOptions): Promise<string> {
+    const result = await this.generateViaApiWithUsage(prompt, options);
+    return result.text;
+  }
+
+  private async generateViaApiWithUsage(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
     if (!this.apiKey) {
       throw new Error('No API key. Use subscription mode or set ANTHROPIC_API_KEY.');
     }
@@ -114,9 +136,16 @@ export class AnthropicAdapter implements ModelAdapter {
         throw new Error(`Anthropic API error ${resp.status}: ${text}`);
       }
 
-      const data = await resp.json() as { content?: Array<{ type: string; text?: string }> };
+      const data = await resp.json() as {
+        content?: Array<{ type: string; text?: string }>;
+        usage?: { input_tokens?: number; output_tokens?: number };
+      };
       const textBlock = data.content?.find(b => b.type === 'text');
-      return textBlock?.text ?? '';
+      return {
+        text: textBlock?.text ?? '',
+        tokens_in: data.usage?.input_tokens,
+        tokens_out: data.usage?.output_tokens,
+      };
     } catch (err: unknown) {
       clearTimeout(timer);
       if (err instanceof Error && err.name === 'AbortError') {
