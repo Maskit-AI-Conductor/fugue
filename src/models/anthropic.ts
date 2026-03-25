@@ -3,6 +3,14 @@
  * Supports two modes:
  * 1. Subscription: uses `claude` CLI (no API key needed)
  * 2. API: direct Anthropic API calls (API key required)
+ *
+ * When using subscription mode (CLI), the adapter tries `--bare` first
+ * for fast execution (skips MCP/hooks/plugins). If --bare fails due to
+ * missing API key, it warns the user and falls back to full CLI mode.
+ *
+ * Env vars:
+ *   ANTHROPIC_API_KEY   — enables --bare mode for instant CLI startup
+ *   FUGUE_CLAUDE_FLAGS  — extra flags appended to every `claude --print` call
  */
 
 import { execSync, exec } from 'node:child_process';
@@ -21,6 +29,12 @@ const MODEL_MAP: Record<string, string> = {
   'claude-sonnet': 'claude-sonnet-4-6',
   'claude-haiku': 'claude-haiku-4-5-20251001',
 };
+
+/** Check if an error is an auth/login issue (not an API error) */
+function isAuthError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes('Not logged in') || msg.includes('Please run /login');
+}
 
 export class AnthropicAdapter implements ModelAdapter {
   name: string;
@@ -78,54 +92,59 @@ export class AnthropicAdapter implements ModelAdapter {
     const tmpFile = path.join(os.tmpdir(), `fugue-prompt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.txt`);
     fs.writeFileSync(tmpFile, fullPrompt, 'utf-8');
 
+    // Allow users to inject extra CLI flags (e.g. "--bare" or "--system-prompt ...")
+    const extraFlags = process.env.FUGUE_CLAUDE_FLAGS?.trim() ?? '';
+
     try {
-      // Use --bare to skip MCP/hooks/plugins initialization (much faster)
-      // --bare still uses subscription auth if no API key is set
       const modelFlag = this.model ? `--model ${this.model}` : '';
       const bareFlag = '--bare';
+      const timeoutMs = (options?.timeout ?? this.defaultTimeout) * 1000;
+      const execOpts = {
+        encoding: 'utf-8' as const,
+        timeout: timeoutMs,
+        maxBuffer: 50 * 1024 * 1024,
+        shell: '/bin/bash',
+      };
+
       let stdout: string;
+
+      // Attempt 1: --bare mode (skips MCP/hooks/plugins — much faster)
+      // Requires ANTHROPIC_API_KEY since --bare skips OAuth/keychain auth
       try {
-        const result = await execAsync(
-          `cat "${tmpFile}" | claude --print ${bareFlag} ${modelFlag}`,
-          {
-            encoding: 'utf-8',
-            timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
-            maxBuffer: 50 * 1024 * 1024,
-            shell: '/bin/bash',
-          },
-        );
+        const cmd = `cat "${tmpFile}" | claude --print ${bareFlag} ${modelFlag} ${extraFlags}`.replace(/\s+/g, ' ').trim();
+        const result = await execAsync(cmd, execOpts);
         stdout = result.stdout;
-      } catch {
-        // Fallback: without --bare (in case --bare needs API key on some setups)
-        try {
-          const result = await execAsync(
-            `cat "${tmpFile}" | claude --print ${modelFlag}`,
-            {
-              encoding: 'utf-8',
-              timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
-              maxBuffer: 50 * 1024 * 1024,
-              shell: '/bin/bash',
-            },
+      } catch (bareErr: unknown) {
+        if (isAuthError(bareErr)) {
+          // --bare skips OAuth; without ANTHROPIC_API_KEY it can't authenticate.
+          // Warn once and fall back to full CLI mode.
+          console.error(
+            '\x1b[33m⚠ claude --bare failed: ANTHROPIC_API_KEY not set.\x1b[0m\n'
+            + '  Falling back to full CLI mode (slower — loads MCP servers, hooks, plugins).\n'
+            + '  To fix: export ANTHROPIC_API_KEY="sk-ant-..." in your shell profile.',
           );
+        }
+
+        // Attempt 2: full CLI with model flag
+        try {
+          const cmd = `cat "${tmpFile}" | claude --print ${modelFlag} ${extraFlags}`.replace(/\s+/g, ' ').trim();
+          const result = await execAsync(cmd, execOpts);
           stdout = result.stdout;
         } catch {
-          // Last fallback: no model flag, no bare
-          const result = await execAsync(
-            `cat "${tmpFile}" | claude --print`,
-            {
-              encoding: 'utf-8',
-              timeout: (options?.timeout ?? this.defaultTimeout) * 1000,
-              maxBuffer: 50 * 1024 * 1024,
-              shell: '/bin/bash',
-            },
-          );
+          // Attempt 3: minimal — no model flag, no bare
+          const cmd = `cat "${tmpFile}" | claude --print ${extraFlags}`.trim();
+          const result = await execAsync(cmd, execOpts);
           stdout = result.stdout;
         }
       }
       return stdout.trim();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`Claude CLI failed: ${msg}`);
+      // Provide actionable guidance in the error message
+      const hint = !process.env.ANTHROPIC_API_KEY
+        ? '\n  Hint: Set ANTHROPIC_API_KEY to enable fast --bare mode and avoid MCP initialization delays.'
+        : '';
+      throw new Error(`Claude CLI failed: ${msg}${hint}`);
     } finally {
       try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
     }
