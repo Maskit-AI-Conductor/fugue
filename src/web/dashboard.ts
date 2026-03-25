@@ -172,6 +172,9 @@ export function renderDashboard(projectName: string): string {
       transition: box-shadow 0.15s, transform 0.1s;
     }
     .kanban-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); transform: translateY(-1px); }
+    .kanban-card[draggable] { cursor: grab; }
+    .kanban-card[draggable]:active { cursor: grabbing; }
+    .kanban-cards.drag-over { background: rgba(52,152,219,0.1); border: 2px dashed var(--accent); border-radius: 6px; }
     .kanban-card.high { border-color: var(--red); }
     .kanban-card.medium { border-color: var(--yellow); }
     .kanban-card.low { border-color: var(--text-dim); }
@@ -864,12 +867,12 @@ export function renderDashboard(projectName: string): string {
         var items = groups[colName] || [];
         html += '<div class="kanban-column">';
         html += '<div class="kanban-column-header"><span>' + colName + '</span><span class="kanban-column-count">' + items.length + '</span></div>';
-        html += '<div class="kanban-cards">';
+        html += '<div class="kanban-cards" data-column="' + colName + '" ondragover="event.preventDefault();this.classList.add(\'drag-over\')" ondragleave="this.classList.remove(\'drag-over\')" ondrop="handleDrop(event,\'' + colName + '\')">';
         for (var j = 0; j < items.length; j++) {
           var req = items[j];
           var pClass = (req.priority || '').toLowerCase();
           var assigneeStr = assigneeMap[req.id] || '';
-          html += '<div class="kanban-card ' + escH(pClass) + '" data-req-id="' + escH(req.id) + '">';
+          html += '<div class="kanban-card ' + escH(pClass) + '" data-req-id="' + escH(req.id) + '" draggable="true" ondragstart="handleDragStart(event,\'' + escH(req.id) + '\')">';
           html += '<div class="kanban-card-id">' + escH(req.id) + '</div>';
           html += '<div class="kanban-card-title">' + escH(req.title) + '</div>';
           html += '<div class="kanban-card-meta">';
@@ -885,12 +888,64 @@ export function renderDashboard(projectName: string): string {
       // Attach click handlers
       var cards = board.querySelectorAll('.kanban-card');
       cards.forEach(function(card) {
-        card.addEventListener('click', function() {
+        card.addEventListener('click', function(e) {
+          if (e.defaultPrevented) return; // skip if drag
           var reqId = card.getAttribute('data-req-id');
           openDetailPanel(reqId);
         });
       });
     }
+
+    // ============ Drag & Drop ============
+    var dragReqId = null;
+
+    window.handleDragStart = function(e, reqId) {
+      dragReqId = reqId;
+      e.dataTransfer.effectAllowed = 'move';
+      e.target.style.opacity = '0.5';
+      setTimeout(function() { e.target.style.opacity = '1'; }, 0);
+    };
+
+    window.handleDrop = function(e, targetColumn) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      if (!dragReqId || !targetColumn) return;
+
+      fetch('/api/specs/' + encodeURIComponent(dragReqId) + '/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: targetColumn }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showToast(dragReqId + ' → ' + targetColumn);
+          refreshData();
+        } else {
+          showToast('Error: ' + (data.error || 'unknown'), true);
+        }
+        dragReqId = null;
+      })
+      .catch(function() { dragReqId = null; });
+    };
+
+    // ============ Status Change ============
+    window.changeReqStatus = function(reqId, newStatus) {
+      fetch('/api/specs/' + encodeURIComponent(reqId) + '/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showToast(reqId + ' → ' + newStatus);
+          refreshData();
+        } else {
+          showToast('Error: ' + (data.error || 'unknown'), true);
+        }
+      });
+    };
 
     // ============ Detail Panel ============
     function openDetailPanel(reqId) {
@@ -909,8 +964,13 @@ export function renderDashboard(projectName: string): string {
       var body = '';
       body += '<div class="dp-title">' + escH(req.title) + '</div>';
 
-      body += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
-      body += '<span class="dp-badge status-' + req.status.toLowerCase() + '">' + escH(req.status) + '</span>';
+      body += '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">';
+      body += '<select id="dpStatusSelect" onchange="changeReqStatus(\'' + escH(req.id) + '\', this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid #ddd;font-size:0.8rem;font-weight:600;cursor:pointer;">';
+      var statuses = ['DRAFT','DECOMPOSED','CONFIRMED','DEV','TESTING','DONE'];
+      for (var si = 0; si < statuses.length; si++) {
+        body += '<option value="' + statuses[si] + '"' + (req.status === statuses[si] ? ' selected' : '') + '>' + statuses[si] + '</option>';
+      }
+      body += '</select>';
       body += '<span class="dp-badge priority-' + (req.priority || '').toLowerCase() + '">' + escH(req.priority) + '</span>';
       body += '</div>';
 

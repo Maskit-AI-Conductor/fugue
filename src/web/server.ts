@@ -332,6 +332,45 @@ export function startServer(fugueDir: string, port: number): http.Server {
         return;
       }
 
+      // POST /api/specs/:id/status
+      const statusMatch = pathname.match(/^\/api\/specs\/([^/]+)\/status$/);
+      if (statusMatch && method === 'POST') {
+        const bodyStr = await readBody(req);
+        let body: Record<string, unknown>;
+        try {
+          body = JSON.parse(bodyStr);
+        } catch {
+          jsonResponse(res, { error: 'Invalid JSON body' }, 400);
+          return;
+        }
+        const reqId = decodeURIComponent(statusMatch[1]);
+        const newStatus = body.status as string;
+        const validStatuses = ['DRAFT', 'DECOMPOSED', 'CONFIRMED', 'DEV', 'TESTING', 'DONE'];
+        if (!validStatuses.includes(newStatus)) {
+          jsonResponse(res, { error: `Invalid status: ${newStatus}` }, 400);
+          return;
+        }
+        const allSpecs = loadSpecs(fugueDir);
+        const targetSpec = allSpecs.find(r => r.id === reqId);
+        if (!targetSpec) {
+          jsonResponse(res, { error: `REQ not found: ${reqId}` }, 404);
+          return;
+        }
+        const oldStatus = targetSpec.status;
+        targetSpec.status = newStatus;
+        const feedbackList = (targetSpec.feedback as Array<Record<string, string>>) ?? [];
+        feedbackList.push({
+          from: 'web-dashboard',
+          action: 'status-change',
+          message: `${oldStatus} → ${newStatus}`,
+          at: new Date().toISOString(),
+        });
+        targetSpec.feedback = feedbackList;
+        saveSpec(fugueDir, targetSpec);
+        jsonResponse(res, { success: true, id: reqId, oldStatus, newStatus });
+        return;
+      }
+
       // POST /api/confirm
       if (pathname === '/api/confirm' && method === 'POST') {
         jsonResponse(res, handleConfirm(fugueDir));
