@@ -867,12 +867,12 @@ export function renderDashboard(projectName: string): string {
         var items = groups[colName] || [];
         html += '<div class="kanban-column">';
         html += '<div class="kanban-column-header"><span>' + colName + '</span><span class="kanban-column-count">' + items.length + '</span></div>';
-        html += '<div class="kanban-cards" data-column="' + colName + '" ondragover="event.preventDefault();this.classList.add(\'drag-over\')" ondragleave="this.classList.remove(\'drag-over\')" ondrop="handleDrop(event,\'' + colName + '\')">';
+        html += '<div class="kanban-cards" data-column="' + colName + '">';
         for (var j = 0; j < items.length; j++) {
           var req = items[j];
           var pClass = (req.priority || '').toLowerCase();
           var assigneeStr = assigneeMap[req.id] || '';
-          html += '<div class="kanban-card ' + escH(pClass) + '" data-req-id="' + escH(req.id) + '" draggable="true" ondragstart="handleDragStart(event,\'' + escH(req.id) + '\')">';
+          html += '<div class="kanban-card ' + escH(pClass) + '" data-req-id="' + escH(req.id) + '" draggable="true">';
           html += '<div class="kanban-card-id">' + escH(req.id) + '</div>';
           html += '<div class="kanban-card-title">' + escH(req.title) + '</div>';
           html += '<div class="kanban-card-meta">';
@@ -885,49 +885,61 @@ export function renderDashboard(projectName: string): string {
       }
       board.innerHTML = html;
 
-      // Attach click handlers
+      // Attach click + drag handlers
       var cards = board.querySelectorAll('.kanban-card');
       cards.forEach(function(card) {
         card.addEventListener('click', function(e) {
-          if (e.defaultPrevented) return; // skip if drag
+          if (card.dataset.dragged) { delete card.dataset.dragged; return; }
           var reqId = card.getAttribute('data-req-id');
           openDetailPanel(reqId);
+        });
+        card.addEventListener('dragstart', function(e) {
+          dragReqId = card.getAttribute('data-req-id');
+          e.dataTransfer.effectAllowed = 'move';
+          card.style.opacity = '0.4';
+          card.dataset.dragged = 'true';
+        });
+        card.addEventListener('dragend', function() {
+          card.style.opacity = '1';
+        });
+      });
+
+      // Attach drop zone handlers to columns
+      var cols = board.querySelectorAll('.kanban-cards');
+      cols.forEach(function(col) {
+        col.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          col.classList.add('drag-over');
+        });
+        col.addEventListener('dragleave', function() {
+          col.classList.remove('drag-over');
+        });
+        col.addEventListener('drop', function(e) {
+          e.preventDefault();
+          col.classList.remove('drag-over');
+          var targetColumn = col.getAttribute('data-column');
+          if (!dragReqId || !targetColumn) return;
+          fetch('/api/specs/' + encodeURIComponent(dragReqId) + '/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: targetColumn }),
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.success) {
+              showToast(dragReqId + ' -> ' + targetColumn);
+              refreshData();
+            } else {
+              showToast('Error: ' + (data.error || 'unknown'), true);
+            }
+            dragReqId = null;
+          })
+          .catch(function() { dragReqId = null; });
         });
       });
     }
 
-    // ============ Drag & Drop ============
     var dragReqId = null;
-
-    window.handleDragStart = function(e, reqId) {
-      dragReqId = reqId;
-      e.dataTransfer.effectAllowed = 'move';
-      e.target.style.opacity = '0.5';
-      setTimeout(function() { e.target.style.opacity = '1'; }, 0);
-    };
-
-    window.handleDrop = function(e, targetColumn) {
-      e.preventDefault();
-      e.currentTarget.classList.remove('drag-over');
-      if (!dragReqId || !targetColumn) return;
-
-      fetch('/api/specs/' + encodeURIComponent(dragReqId) + '/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: targetColumn }),
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.success) {
-          showToast(dragReqId + ' → ' + targetColumn);
-          refreshData();
-        } else {
-          showToast('Error: ' + (data.error || 'unknown'), true);
-        }
-        dragReqId = null;
-      })
-      .catch(function() { dragReqId = null; });
-    };
 
     // ============ Status Change ============
     window.changeReqStatus = function(reqId, newStatus) {
@@ -965,7 +977,7 @@ export function renderDashboard(projectName: string): string {
       body += '<div class="dp-title">' + escH(req.title) + '</div>';
 
       body += '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">';
-      body += '<select id="dpStatusSelect" onchange="changeReqStatus(\'' + escH(req.id) + '\', this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid #ddd;font-size:0.8rem;font-weight:600;cursor:pointer;">';
+      body += '<select id="dpStatusSelect" data-req-id="' + escH(req.id) + '" style="padding:4px 8px;border-radius:6px;border:1px solid #ddd;font-size:0.8rem;font-weight:600;cursor:pointer;">';
       var statuses = ['DRAFT','DECOMPOSED','CONFIRMED','DEV','TESTING','DONE'];
       for (var si = 0; si < statuses.length; si++) {
         body += '<option value="' + statuses[si] + '"' + (req.status === statuses[si] ? ' selected' : '') + '>' + statuses[si] + '</option>';
@@ -1021,6 +1033,15 @@ export function renderDashboard(projectName: string): string {
       document.getElementById('detailPanel').classList.add('open');
       document.getElementById('panelOverlay').classList.add('open');
       document.body.classList.add('panel-open');
+
+      // Bind status dropdown
+      var sel = document.getElementById('dpStatusSelect');
+      if (sel) {
+        sel.addEventListener('change', function() {
+          var rid = sel.getAttribute('data-req-id');
+          changeReqStatus(rid, sel.value);
+        });
+      }
     }
 
     function closeDetailPanel() {
