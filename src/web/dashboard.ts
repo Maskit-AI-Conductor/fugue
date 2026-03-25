@@ -1,6 +1,8 @@
 /**
  * Dashboard HTML generator — single-file inline CSS + JS.
  * Renders a shell HTML that fetches data from /api/* endpoints.
+ *
+ * Views: Board (kanban) | List | Deliverables | Tasks
  */
 
 export function renderDashboard(projectName: string): string {
@@ -30,21 +32,34 @@ export function renderDashboard(projectName: string): string {
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg); color: var(--text);
-      max-width: 1200px; margin: 0 auto; padding: 24px 20px;
+      margin: 0 auto; padding: 24px 20px;
       line-height: 1.5;
     }
+    body.panel-open { margin-right: 420px; }
 
     /* Header */
-    .header { margin-bottom: 24px; }
+    .header { margin-bottom: 16px; max-width: 1200px; margin-left: auto; margin-right: auto; }
     .header h1 { font-size: 1.4rem; font-weight: 700; color: var(--key); }
     .header .meta { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
     .header .meta span { margin-right: 16px; }
+    .project-label { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+
+    /* View tabs */
+    .view-tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border); max-width: 1200px; margin-left: auto; margin-right: auto; }
+    .view-tab {
+      padding: 8px 20px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+      color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px;
+      background: none; border-top: none; border-left: none; border-right: none;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
     /* Cards */
     .card {
       background: var(--card-bg); border-radius: var(--radius);
       padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border); max-width: 1200px; margin-left: auto; margin-right: auto;
     }
     .card h2 {
       font-size: 1rem; font-weight: 600; color: var(--text-muted);
@@ -55,7 +70,52 @@ export function renderDashboard(projectName: string): string {
       padding: 1px 8px; border-radius: 10px; font-weight: 500;
     }
 
-    /* Progress bar */
+    /* Stats bar */
+    .stats-bar {
+      background: var(--card-bg); border-radius: var(--radius);
+      padding: 16px 20px; margin-bottom: 16px; box-shadow: var(--shadow);
+      border: 1px solid var(--border); max-width: 1200px; margin-left: auto; margin-right: auto;
+    }
+    .stats-summary { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: 0.9rem; margin-bottom: 8px; }
+    .stats-summary .stat-item { display: flex; align-items: center; gap: 4px; }
+    .stats-summary .stat-label { color: var(--text-muted); }
+    .stats-summary .stat-value { font-weight: 700; }
+    .stats-summary .stat-value.done { color: var(--green); }
+    .stats-summary .stat-value.dev { color: var(--yellow); }
+    .stats-summary .stat-value.confirmed { color: var(--accent); }
+    .stats-summary .stat-value.draft { color: var(--text-dim); }
+    .stats-progress { background: var(--border); border-radius: 4px; height: 20px; overflow: hidden; }
+    .stats-progress-fill {
+      background: var(--green); height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 0.75rem; font-weight: 600;
+      min-width: 28px; transition: width 0.4s ease;
+    }
+
+    /* Filters — shared between board and list */
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; max-width: 1200px; margin-left: auto; margin-right: auto; }
+    .filter-group { display: flex; gap: 4px; align-items: center; }
+    .filter-group label { font-size: 0.8rem; color: var(--text-muted); margin-right: 4px; font-weight: 600; }
+    .filter-btn {
+      padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px;
+      background: var(--card-bg); cursor: pointer; font-size: 0.8rem; transition: all 0.15s;
+    }
+    .filter-btn:hover { border-color: #999; }
+    .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .filter-btn.active-high { background: var(--red); color: white; border-color: var(--red); }
+    .filter-btn.active-medium { background: var(--yellow); color: white; border-color: var(--yellow); }
+    .filter-btn.active-low { background: var(--text-dim); color: white; border-color: var(--text-dim); }
+    .search-box {
+      padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px;
+      font-size: 0.85rem; width: 220px; background: var(--card-bg);
+    }
+    .search-box:focus { outline: none; border-color: var(--accent); }
+    select.filter-select {
+      padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px;
+      font-size: 0.85rem; background: var(--card-bg);
+    }
+
+    /* Progress bar (list view) */
     .progress-bar { background: var(--border); border-radius: 4px; height: 24px; overflow: hidden; margin-bottom: 12px; }
     .progress-fill {
       background: var(--green); height: 100%;
@@ -76,6 +136,125 @@ export function renderDashboard(projectName: string): string {
     .counter.stale .value { color: var(--red); }
     .counter.deprecated .value { color: var(--text-dim); text-decoration: line-through; }
 
+    /* Kanban board */
+    .kanban-container { max-width: 100%; overflow-x: auto; padding-bottom: 8px; }
+    .kanban {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(200px, 1fr));
+      gap: 8px;
+      min-width: 900px;
+    }
+    .kanban-column {
+      background: #f0f1f3;
+      border-radius: 8px;
+      padding: 8px;
+      min-height: 200px;
+    }
+    .kanban-column-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 8px; margin-bottom: 8px;
+      font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .kanban-column-count {
+      background: var(--border); color: var(--text-muted);
+      padding: 1px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600;
+    }
+    .kanban-cards { display: flex; flex-direction: column; gap: 6px; }
+    .kanban-card {
+      background: white;
+      border-radius: 6px;
+      padding: 8px 12px;
+      border-left: 3px solid;
+      cursor: pointer;
+      font-size: 13px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      transition: box-shadow 0.15s, transform 0.1s;
+    }
+    .kanban-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); transform: translateY(-1px); }
+    .kanban-card.high { border-color: var(--red); }
+    .kanban-card.medium { border-color: var(--yellow); }
+    .kanban-card.low { border-color: var(--text-dim); }
+    .kanban-card-id { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+    .kanban-card-title { margin-top: 2px; color: var(--text); line-height: 1.3; word-break: break-word; }
+    .kanban-card-meta { margin-top: 4px; display: flex; gap: 6px; align-items: center; font-size: 0.7rem; }
+    .kanban-card-priority { font-weight: 700; text-transform: uppercase; }
+    .kanban-card-priority.high { color: var(--red); }
+    .kanban-card-priority.medium { color: var(--yellow); }
+    .kanban-card-priority.low { color: var(--text-dim); }
+    .kanban-card-assignee { color: var(--text-muted); }
+
+    /* Detail panel (side panel) */
+    .detail-panel {
+      position: fixed;
+      right: 0; top: 0;
+      width: 420px; height: 100vh;
+      background: white;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+      transform: translateX(100%);
+      transition: transform 0.2s;
+      overflow-y: auto;
+      z-index: 100;
+      border-left: 1px solid var(--border);
+    }
+    .detail-panel.open { transform: translateX(0); }
+    .detail-panel-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: white; z-index: 1;
+    }
+    .detail-panel-header h3 { font-size: 1rem; font-weight: 700; color: var(--accent); }
+    .detail-panel-close {
+      background: none; border: none; font-size: 1.4rem; cursor: pointer;
+      color: var(--text-muted); padding: 4px 8px; border-radius: 4px;
+    }
+    .detail-panel-close:hover { background: var(--border); }
+    .detail-panel-body { padding: 16px 20px; }
+    .detail-panel-body .dp-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; }
+    .dp-field { margin-bottom: 10px; }
+    .dp-field-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; }
+    .dp-field-value { font-size: 0.9rem; color: var(--text); word-break: break-word; }
+    .dp-field-value code { background: #e5e7eb; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+    .dp-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    }
+    .dp-badge.status-draft { background: #f3f4f6; color: var(--text-dim); }
+    .dp-badge.status-decomposed { background: #ede9fe; color: #7c3aed; }
+    .dp-badge.status-confirmed { background: #dbeafe; color: var(--accent); }
+    .dp-badge.status-dev { background: #fef3c7; color: #b45309; }
+    .dp-badge.status-testing { background: #e0f2fe; color: #0284c7; }
+    .dp-badge.status-done { background: #dcfce7; color: #16a34a; }
+    .dp-badge.status-accepted { background: #dcfce7; color: #059669; }
+    .dp-badge.status-rejected { background: #fee2e2; color: var(--red); }
+    .dp-badge.status-stale { background: #fee2e2; color: var(--red); }
+    .dp-badge.status-deprecated { background: #f3f4f6; color: var(--text-dim); text-decoration: line-through; }
+    .dp-badge.priority-high { background: #fee2e2; color: var(--red); }
+    .dp-badge.priority-medium { background: #fef3c7; color: #b45309; }
+    .dp-badge.priority-low { background: #f3f4f6; color: var(--text-dim); }
+    .dp-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .dp-section h4 { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+    .dp-fb-entry { font-size: 0.8rem; padding: 4px 0; color: var(--text-muted); }
+    .dp-fb-entry .fb-action { font-weight: 600; text-transform: uppercase; }
+    .dp-fb-entry .fb-action.accept { color: var(--green); }
+    .dp-fb-entry .fb-action.reject { color: var(--red); }
+    .dp-fb-entry .fb-action.comment { color: var(--accent); }
+    .dp-feedback-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .dp-feedback-form input {
+      padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem;
+    }
+    .dp-feedback-form input:focus { outline: none; border-color: var(--accent); }
+    .dp-feedback-btns { display: flex; gap: 6px; }
+    .dp-fb-btn {
+      padding: 5px 14px; border: 1px solid var(--border); border-radius: 4px;
+      cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.15s;
+      background: var(--card-bg);
+    }
+    .dp-fb-btn:hover { opacity: 0.85; }
+    .dp-fb-btn.accept { background: var(--green); color: white; border-color: var(--green); }
+    .dp-fb-btn.reject { background: var(--red); color: white; border-color: var(--red); }
+    .dp-fb-btn.comment-btn { background: var(--accent); color: white; border-color: var(--accent); }
+
     /* Deliverables */
     .del-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 0.9rem; }
     .del-icon { width: 20px; text-align: center; font-size: 0.85rem; }
@@ -87,30 +266,7 @@ export function renderDashboard(projectName: string): string {
     .del-name { flex: 1; }
     .del-detail { color: var(--text-muted); font-size: 0.85rem; }
 
-    /* Filters */
-    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
-    .filter-group { display: flex; gap: 4px; align-items: center; }
-    .filter-group label { font-size: 0.8rem; color: var(--text-muted); margin-right: 4px; font-weight: 600; }
-    .filter-btn {
-      padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px;
-      background: var(--card-bg); cursor: pointer; font-size: 0.8rem; transition: all 0.15s;
-    }
-    .filter-btn:hover { border-color: #999; }
-    .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-    .filter-btn.active-high { background: var(--red); color: white; border-color: var(--red); }
-    .filter-btn.active-medium { background: var(--yellow); color: white; border-color: var(--yellow); }
-    .filter-btn.active-low { background: var(--text-dim); color: white; border-color: var(--text-dim); }
-    .search-box {
-      padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px;
-      font-size: 0.85rem; width: 220px; background: var(--card-bg);
-    }
-    .search-box:focus { outline: none; border-color: var(--accent); }
-    select.domain-select {
-      padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px;
-      font-size: 0.85rem; background: var(--card-bg);
-    }
-
-    /* REQ Table */
+    /* REQ Table (list view) */
     .req-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     .req-table th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; font-size: 0.8rem; }
     .req-table td { padding: 8px; border-bottom: 1px solid #f0f0f0; }
@@ -129,7 +285,7 @@ export function renderDashboard(projectName: string): string {
     .priority-medium { color: var(--yellow); font-weight: 600; }
     .priority-low { color: var(--text-dim); }
 
-    /* Detail row */
+    /* Detail row (list view) */
     .req-detail { display: none; }
     .req-detail.open { display: table-row; }
     .req-detail td { padding: 14px 20px; background: #f9fafb; border-bottom: 1px solid var(--border); }
@@ -140,7 +296,7 @@ export function renderDashboard(projectName: string): string {
     .chevron { display: inline-block; transition: transform 0.15s; font-size: 0.7rem; margin-right: 4px; }
     .chevron.open { transform: rotate(90deg); }
 
-    /* Feedback section */
+    /* Feedback section (list view) */
     .feedback-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
     .feedback-history { margin-bottom: 10px; }
     .fb-entry { font-size: 0.8rem; padding: 4px 0; color: var(--text-muted); }
@@ -206,14 +362,28 @@ export function renderDashboard(projectName: string): string {
     }
     .toast.show { opacity: 1; }
 
+    /* Overlay for detail panel */
+    .panel-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.15); z-index: 99;
+    }
+    .panel-overlay.open { display: block; }
+
+    /* View sections */
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+
     /* Responsive */
     @media (max-width: 768px) {
       body { padding: 12px; }
+      body.panel-open { margin-right: 0; }
       .filters { flex-direction: column; align-items: stretch; }
       .search-box { width: 100%; }
       .counters { justify-content: space-around; }
       .feedback-actions { flex-direction: column; }
       .fb-input { min-width: auto; width: 100%; }
+      .detail-panel { width: 100%; }
+      .kanban { grid-template-columns: repeat(6, minmax(180px, 1fr)); min-width: 800px; }
     }
 
     /* Refresh indicator */
@@ -231,66 +401,134 @@ export function renderDashboard(projectName: string): string {
   <div class="header">
     <h1>fugue — Project Dashboard <span class="refresh-dot" title="Auto-refreshing"></span></h1>
     <div class="meta" id="headerMeta">Loading...</div>
+    <div class="project-label" id="projectLabel"></div>
   </div>
 
-  <div class="card" id="progressCard">
-    <h2>Progress</h2>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%">0%</div></div>
-    <div class="counters" id="counters"></div>
+  <!-- View Tabs -->
+  <div class="view-tabs" id="viewTabs">
+    <button class="view-tab active" data-view="board">Board</button>
+    <button class="view-tab" data-view="list">List</button>
+    <button class="view-tab" data-view="deliverables">Deliverables</button>
+    <button class="view-tab" data-view="tasks">Tasks</button>
   </div>
 
-  <div class="card" id="deliverablesCard">
-    <h2>Deliverables</h2>
-    <div id="deliverablesList"></div>
-  </div>
+  <!-- ========== BOARD VIEW ========== -->
+  <div class="view-section active" id="view-board">
+    <!-- Stats bar -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stats-summary" id="statsSummary"></div>
+      <div class="stats-progress"><div class="stats-progress-fill" id="statsProgressFill" style="width:0%">0%</div></div>
+    </div>
 
-  <div class="card" id="reqsCard">
-    <h2>Requirements <span class="badge" id="reqCount">0</span></h2>
-    <div class="filters">
+    <!-- Filters -->
+    <div class="filters" id="boardFilters">
       <div class="filter-group">
         <label>Domain:</label>
-        <select class="domain-select" id="domainFilter"></select>
+        <select class="filter-select" id="boardDomainFilter"><option value="">All</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Assignee:</label>
+        <select class="filter-select" id="boardAssigneeFilter"><option value="">All</option><option value="__unassigned__">Unassigned</option></select>
       </div>
       <div class="filter-group">
         <label>Priority:</label>
-        <button class="filter-btn" data-filter="priority" data-value="HIGH">HIGH</button>
-        <button class="filter-btn" data-filter="priority" data-value="MEDIUM">MEDIUM</button>
-        <button class="filter-btn" data-filter="priority" data-value="LOW">LOW</button>
+        <button class="filter-btn" data-board-filter="priority" data-value="ALL">ALL</button>
+        <button class="filter-btn" data-board-filter="priority" data-value="HIGH">HIGH</button>
+        <button class="filter-btn" data-board-filter="priority" data-value="MEDIUM">MEDIUM</button>
+        <button class="filter-btn" data-board-filter="priority" data-value="LOW">LOW</button>
       </div>
       <div class="filter-group">
-        <label>Status:</label>
-        <button class="filter-btn" data-filter="status" data-value="DRAFT">DRAFT</button>
-        <button class="filter-btn" data-filter="status" data-value="ACCEPTED">ACCEPTED</button>
-        <button class="filter-btn" data-filter="status" data-value="CONFIRMED">CONFIRMED</button>
-        <button class="filter-btn" data-filter="status" data-value="DEV">DEV</button>
-        <button class="filter-btn" data-filter="status" data-value="DONE">DONE</button>
-        <button class="filter-btn" data-filter="status" data-value="REJECTED">REJECTED</button>
+        <label>Requester:</label>
+        <select class="filter-select" id="boardRequesterFilter"><option value="">All</option></select>
       </div>
       <div class="filter-group" style="margin-left:auto;">
-        <input type="text" class="search-box" id="searchBox" placeholder="Search REQ ID or title...">
+        <input type="text" class="search-box" id="boardSearchBox" placeholder="Search REQ ID or title...">
       </div>
     </div>
 
-    <div class="confirm-section">
-      <button class="confirm-btn" id="confirmBtn" onclick="doConfirm()">Confirm All (ACCEPTED/DRAFT → CONFIRMED)</button>
-      <span class="confirm-result" id="confirmResult"></span>
+    <!-- Kanban board -->
+    <div class="kanban-container">
+      <div class="kanban" id="kanbanBoard"></div>
+    </div>
+  </div>
+
+  <!-- ========== LIST VIEW ========== -->
+  <div class="view-section" id="view-list">
+    <div class="card" id="progressCard">
+      <h2>Progress</h2>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%">0%</div></div>
+      <div class="counters" id="counters"></div>
     </div>
 
-    <table class="req-table">
-      <thead><tr><th></th><th>ID</th><th>Status</th><th>Priority</th><th>Title</th></tr></thead>
-      <tbody id="reqTableBody"></tbody>
-    </table>
-    <div class="pagination" id="pagination"></div>
+    <div class="card" id="reqsCard">
+      <h2>Requirements <span class="badge" id="reqCount">0</span></h2>
+      <div class="filters">
+        <div class="filter-group">
+          <label>Domain:</label>
+          <select class="filter-select" id="domainFilter"></select>
+        </div>
+        <div class="filter-group">
+          <label>Priority:</label>
+          <button class="filter-btn" data-filter="priority" data-value="HIGH">HIGH</button>
+          <button class="filter-btn" data-filter="priority" data-value="MEDIUM">MEDIUM</button>
+          <button class="filter-btn" data-filter="priority" data-value="LOW">LOW</button>
+        </div>
+        <div class="filter-group">
+          <label>Status:</label>
+          <button class="filter-btn" data-filter="status" data-value="DRAFT">DRAFT</button>
+          <button class="filter-btn" data-filter="status" data-value="ACCEPTED">ACCEPTED</button>
+          <button class="filter-btn" data-filter="status" data-value="CONFIRMED">CONFIRMED</button>
+          <button class="filter-btn" data-filter="status" data-value="DEV">DEV</button>
+          <button class="filter-btn" data-filter="status" data-value="DONE">DONE</button>
+          <button class="filter-btn" data-filter="status" data-value="REJECTED">REJECTED</button>
+        </div>
+        <div class="filter-group" style="margin-left:auto;">
+          <input type="text" class="search-box" id="searchBox" placeholder="Search REQ ID or title...">
+        </div>
+      </div>
+
+      <div class="confirm-section">
+        <button class="confirm-btn" id="confirmBtn" onclick="doConfirm()">Confirm All (ACCEPTED/DRAFT \\u2192 CONFIRMED)</button>
+        <span class="confirm-result" id="confirmResult"></span>
+      </div>
+
+      <table class="req-table">
+        <thead><tr><th></th><th>ID</th><th>Status</th><th>Priority</th><th>Title</th></tr></thead>
+        <tbody id="reqTableBody"></tbody>
+      </table>
+      <div class="pagination" id="pagination"></div>
+    </div>
   </div>
 
-  <div class="card" id="tasksCard">
-    <h2>Tasks <span class="badge" id="taskCount">0</span></h2>
-    <div id="tasksList"></div>
+  <!-- ========== DELIVERABLES VIEW ========== -->
+  <div class="view-section" id="view-deliverables">
+    <div class="card" id="deliverablesCard">
+      <h2>Deliverables</h2>
+      <div id="deliverablesList"></div>
+    </div>
   </div>
 
-  <div class="card" id="auditCard">
-    <h2>Audit Summary</h2>
-    <div id="auditSummary"><span class="loading">Not loaded</span></div>
+  <!-- ========== TASKS VIEW ========== -->
+  <div class="view-section" id="view-tasks">
+    <div class="card" id="tasksCard">
+      <h2>Tasks <span class="badge" id="taskCount">0</span></h2>
+      <div id="tasksList"></div>
+    </div>
+
+    <div class="card" id="auditCard">
+      <h2>Audit Summary</h2>
+      <div id="auditSummary"><span class="loading">Not loaded</span></div>
+    </div>
+  </div>
+
+  <!-- Detail panel (side) -->
+  <div class="panel-overlay" id="panelOverlay"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-panel-header">
+      <h3 id="dpHeaderId">—</h3>
+      <button class="detail-panel-close" id="dpClose">\\u2715</button>
+    </div>
+    <div class="detail-panel-body" id="dpBody"></div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -299,6 +537,7 @@ export function renderDashboard(projectName: string): string {
   (function() {
     // ============ State ============
     var allReqs = [];
+    var allTasks = [];
     var filteredReqs = [];
     var currentPage = 1;
     var PAGE_SIZE = 50;
@@ -306,6 +545,12 @@ export function renderDashboard(projectName: string): string {
     var activePriorities = {};
     var activeStatuses = {};
     var domains = [];
+    var currentView = 'board';
+    var boardPriorityFilter = 'ALL';
+    var selectedReqId = null;
+
+    // Kanban column definitions
+    var KANBAN_COLUMNS = ['DRAFT', 'DECOMPOSED', 'CONFIRMED', 'DEV', 'TESTING', 'DONE'];
 
     // ============ API ============
     function api(method, url, body) {
@@ -330,6 +575,26 @@ export function renderDashboard(projectName: string): string {
       return d.innerHTML;
     }
 
+    // ============ View Tabs ============
+    var viewTabs = document.querySelectorAll('.view-tab');
+    viewTabs.forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        var view = tab.getAttribute('data-view');
+        switchView(view);
+      });
+    });
+
+    function switchView(view) {
+      currentView = view;
+      viewTabs.forEach(function(tab) {
+        tab.classList.toggle('active', tab.getAttribute('data-view') === view);
+      });
+      var sections = document.querySelectorAll('.view-section');
+      sections.forEach(function(sec) {
+        sec.classList.toggle('active', sec.id === 'view-' + view);
+      });
+    }
+
     // ============ Load Status ============
     function loadStatus() {
       api('GET', '/api/status').then(function(data) {
@@ -337,6 +602,8 @@ export function renderDashboard(projectName: string): string {
         hdr.innerHTML = '<span>' + escH(data.project_name) + '</span>' +
           '<span>conductor: ' + escH(data.conductor || 'none') + '</span>' +
           '<span>' + data.counts.total + ' REQs</span>';
+
+        document.getElementById('projectLabel').textContent = data.project_name;
 
         var pct = data.counts.total > 0 ? Math.round((data.counts.done / data.counts.total) * 100) : 0;
         var fill = document.getElementById('progressFill');
@@ -355,7 +622,32 @@ export function renderDashboard(projectName: string): string {
         counters.innerHTML = items.map(function(it) {
           return '<div class="counter ' + it.cls + '"><div class="value">' + it.val + '</div><div class="label">' + it.label + '</div></div>';
         }).join('');
+
+        // Stats bar
+        updateStatsBar(data.counts);
       });
+    }
+
+    function updateStatsBar(counts) {
+      var total = counts.total || 0;
+      var done = counts.done || 0;
+      var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      var summary = document.getElementById('statsSummary');
+      var parts = [
+        { label: 'Total', value: total, cls: '' },
+        { label: 'DRAFT', value: counts.draft || 0, cls: 'draft' },
+        { label: 'CONFIRMED', value: counts.confirmed || 0, cls: 'confirmed' },
+        { label: 'DEV', value: counts.dev || 0, cls: 'dev' },
+        { label: 'DONE', value: done, cls: 'done' },
+      ];
+      summary.innerHTML = parts.map(function(p) {
+        return '<div class="stat-item"><span class="stat-label">' + p.label + ':</span> <span class="stat-value ' + p.cls + '">' + p.value + '</span></div>';
+      }).join('');
+
+      var sfill = document.getElementById('statsProgressFill');
+      sfill.style.width = Math.max(pct, 2) + '%';
+      sfill.textContent = pct + '%';
     }
 
     // ============ Load Deliverables ============
@@ -373,6 +665,34 @@ export function renderDashboard(projectName: string): string {
       });
     }
 
+    // ============ Build assignee map from tasks ============
+    function buildAssigneeMap() {
+      var map = {};
+      for (var i = 0; i < allTasks.length; i++) {
+        var t = allTasks[i];
+        if (t.assignees && t.req_ids) {
+          for (var j = 0; j < t.req_ids.length; j++) {
+            map[t.req_ids[j]] = t.assignees.join(', ');
+          }
+        }
+      }
+      return map;
+    }
+
+    // ============ Build requester map from tasks ============
+    function buildRequesterMap() {
+      var map = {};
+      for (var i = 0; i < allTasks.length; i++) {
+        var t = allTasks[i];
+        if (t.requester && t.req_ids) {
+          for (var j = 0; j < t.req_ids.length; j++) {
+            map[t.req_ids[j]] = t.requester;
+          }
+        }
+      }
+      return map;
+    }
+
     // ============ Load Specs ============
     function loadSpecs() {
       api('GET', '/api/specs').then(function(data) {
@@ -383,18 +703,63 @@ export function renderDashboard(projectName: string): string {
           if (allReqs[i].domain) domSet[allReqs[i].domain] = true;
         }
         domains = Object.keys(domSet).sort();
+
+        // Update list view domain filter
         var sel = document.getElementById('domainFilter');
         var curVal = sel.value;
         sel.innerHTML = '<option value="">All</option>' +
           domains.map(function(d) { return '<option value="' + escH(d) + '">' + escH(d) + '</option>'; }).join('');
         sel.value = curVal;
+
+        // Update board domain filter
+        var bSel = document.getElementById('boardDomainFilter');
+        var bCurVal = bSel.value;
+        bSel.innerHTML = '<option value="">All</option>' +
+          domains.map(function(d) { return '<option value="' + escH(d) + '">' + escH(d) + '</option>'; }).join('');
+        bSel.value = bCurVal;
+
+        // Update assignee filter
+        updateAssigneeFilter();
+        // Update requester filter
+        updateRequesterFilter();
+
         applyFilters();
+        renderKanban();
       });
+    }
+
+    function updateAssigneeFilter() {
+      var assigneeMap = buildAssigneeMap();
+      var assigneeSet = {};
+      for (var k in assigneeMap) {
+        if (assigneeMap[k]) assigneeSet[assigneeMap[k]] = true;
+      }
+      var assignees = Object.keys(assigneeSet).sort();
+      var aSel = document.getElementById('boardAssigneeFilter');
+      var aCurVal = aSel.value;
+      aSel.innerHTML = '<option value="">All</option><option value="__unassigned__">Unassigned</option>' +
+        assignees.map(function(a) { return '<option value="' + escH(a) + '">' + escH(a) + '</option>'; }).join('');
+      aSel.value = aCurVal;
+    }
+
+    function updateRequesterFilter() {
+      var requesterMap = buildRequesterMap();
+      var reqSet = {};
+      for (var k in requesterMap) {
+        if (requesterMap[k]) reqSet[requesterMap[k]] = true;
+      }
+      var requesters = Object.keys(reqSet).sort();
+      var rSel = document.getElementById('boardRequesterFilter');
+      var rCurVal = rSel.value;
+      rSel.innerHTML = '<option value="">All</option>' +
+        requesters.map(function(r) { return '<option value="' + escH(r) + '">' + escH(r) + '</option>'; }).join('');
+      rSel.value = rCurVal;
     }
 
     // ============ Load Tasks ============
     function loadTasks() {
       api('GET', '/api/tasks').then(function(data) {
+        allTasks = data;
         document.getElementById('taskCount').textContent = data.length;
         var el = document.getElementById('tasksList');
         if (data.length === 0) {
@@ -408,6 +773,11 @@ export function renderDashboard(projectName: string): string {
             '<span class="task-title">' + escH(t.title) + '</span>' +
             '<span class="task-reqs">' + (t.req_ids ? t.req_ids.length : 0) + ' REQs</span></div>';
         }).join('');
+
+        // Rebuild board filters after tasks loaded
+        updateAssigneeFilter();
+        updateRequesterFilter();
+        renderKanban();
       });
     }
 
@@ -430,7 +800,209 @@ export function renderDashboard(projectName: string): string {
       });
     }
 
-    // ============ Filters ============
+    // ============ Board Filters ============
+    function applyBoardFilters(specs) {
+      var domain = document.getElementById('boardDomainFilter').value;
+      var assignee = document.getElementById('boardAssigneeFilter').value;
+      var requester = document.getElementById('boardRequesterFilter').value;
+      var search = document.getElementById('boardSearchBox').value.toLowerCase().trim();
+      var assigneeMap = buildAssigneeMap();
+      var requesterMap = buildRequesterMap();
+
+      return specs.filter(function(s) {
+        if (domain && s.domain !== domain) return false;
+        if (boardPriorityFilter !== 'ALL' && s.priority !== boardPriorityFilter) return false;
+        if (assignee === '__unassigned__') {
+          if (assigneeMap[s.id]) return false;
+        } else if (assignee && assigneeMap[s.id] !== assignee) {
+          return false;
+        }
+        if (requester) {
+          if (requesterMap[s.id] !== requester) return false;
+        }
+        if (search && s.id.toLowerCase().indexOf(search) === -1 && s.title.toLowerCase().indexOf(search) === -1) return false;
+        return true;
+      });
+    }
+
+    // ============ Kanban Rendering ============
+    function renderKanban() {
+      var filtered = applyBoardFilters(allReqs);
+      var assigneeMap = buildAssigneeMap();
+
+      // Group by status
+      var groups = {};
+      for (var ci = 0; ci < KANBAN_COLUMNS.length; ci++) {
+        groups[KANBAN_COLUMNS[ci]] = [];
+      }
+      // Map non-standard statuses to columns
+      var statusMap = {
+        'DRAFT': 'DRAFT',
+        'ACCEPTED': 'DRAFT',
+        'DECOMPOSED': 'DECOMPOSED',
+        'CONFIRMED': 'CONFIRMED',
+        'DEV': 'DEV',
+        'IN_PROGRESS': 'DEV',
+        'TESTING': 'TESTING',
+        'DONE': 'DONE',
+        'CLOSED': 'DONE',
+        'REJECTED': 'DRAFT',
+        'DEPRECATED': 'DRAFT',
+        'STALE': 'DRAFT',
+      };
+
+      for (var i = 0; i < filtered.length; i++) {
+        var r = filtered[i];
+        var col = statusMap[r.status] || 'DRAFT';
+        if (groups[col]) groups[col].push(r);
+      }
+
+      var board = document.getElementById('kanbanBoard');
+      var html = '';
+      for (var ci = 0; ci < KANBAN_COLUMNS.length; ci++) {
+        var colName = KANBAN_COLUMNS[ci];
+        var items = groups[colName] || [];
+        html += '<div class="kanban-column">';
+        html += '<div class="kanban-column-header"><span>' + colName + '</span><span class="kanban-column-count">' + items.length + '</span></div>';
+        html += '<div class="kanban-cards">';
+        for (var j = 0; j < items.length; j++) {
+          var req = items[j];
+          var pClass = (req.priority || '').toLowerCase();
+          var assigneeStr = assigneeMap[req.id] || '';
+          html += '<div class="kanban-card ' + escH(pClass) + '" data-req-id="' + escH(req.id) + '">';
+          html += '<div class="kanban-card-id">' + escH(req.id) + '</div>';
+          html += '<div class="kanban-card-title">' + escH(req.title) + '</div>';
+          html += '<div class="kanban-card-meta">';
+          html += '<span class="kanban-card-priority ' + escH(pClass) + '">' + escH(req.priority) + '</span>';
+          if (assigneeStr) html += '<span class="kanban-card-assignee">' + escH(assigneeStr) + '</span>';
+          html += '</div>';
+          html += '</div>';
+        }
+        html += '</div></div>';
+      }
+      board.innerHTML = html;
+
+      // Attach click handlers
+      var cards = board.querySelectorAll('.kanban-card');
+      cards.forEach(function(card) {
+        card.addEventListener('click', function() {
+          var reqId = card.getAttribute('data-req-id');
+          openDetailPanel(reqId);
+        });
+      });
+    }
+
+    // ============ Detail Panel ============
+    function openDetailPanel(reqId) {
+      selectedReqId = reqId;
+      var req = null;
+      for (var i = 0; i < allReqs.length; i++) {
+        if (allReqs[i].id === reqId) { req = allReqs[i]; break; }
+      }
+      if (!req) return;
+
+      var assigneeMap = buildAssigneeMap();
+      var assigneeStr = assigneeMap[reqId] || 'Unassigned';
+
+      document.getElementById('dpHeaderId').textContent = req.id;
+
+      var body = '';
+      body += '<div class="dp-title">' + escH(req.title) + '</div>';
+
+      body += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
+      body += '<span class="dp-badge status-' + req.status.toLowerCase() + '">' + escH(req.status) + '</span>';
+      body += '<span class="dp-badge priority-' + (req.priority || '').toLowerCase() + '">' + escH(req.priority) + '</span>';
+      body += '</div>';
+
+      body += '<div class="dp-field"><div class="dp-field-label">Description</div><div class="dp-field-value">' + escH(req.description || '(none)') + '</div></div>';
+      body += '<div class="dp-field"><div class="dp-field-label">Assignee</div><div class="dp-field-value">' + escH(assigneeStr) + '</div></div>';
+      body += '<div class="dp-field"><div class="dp-field-label">Created</div><div class="dp-field-value">' + escH(req.created || '(unknown)') + '</div></div>';
+
+      if (req.code_refs && req.code_refs.length > 0) {
+        body += '<div class="dp-field"><div class="dp-field-label">Code Refs</div><div class="dp-field-value">' +
+          req.code_refs.map(function(c) { return '<code>' + escH(c) + '</code>'; }).join(' ') + '</div></div>';
+      }
+      if (req.test_refs && req.test_refs.length > 0) {
+        body += '<div class="dp-field"><div class="dp-field-label">Test Refs</div><div class="dp-field-value">' +
+          req.test_refs.map(function(c) { return '<code>' + escH(c) + '</code>'; }).join(' ') + '</div></div>';
+      }
+      if (req.assigned_model) {
+        body += '<div class="dp-field"><div class="dp-field-label">Model</div><div class="dp-field-value">' + escH(req.assigned_model) + '</div></div>';
+      }
+
+      // Feedback history
+      var feedbackList = req.feedback || [];
+      body += '<div class="dp-section"><h4>Feedback History</h4>';
+      if (feedbackList.length > 0) {
+        for (var fi = 0; fi < feedbackList.length; fi++) {
+          var fb = feedbackList[fi];
+          body += '<div class="dp-fb-entry"><span class="fb-action ' + (fb.action || '') + '">' + escH(fb.action || '') + '</span>';
+          body += ' by ' + escH(fb.from || 'unknown');
+          if (fb.message) body += ' — ' + escH(fb.message);
+          body += ' <span style="color:var(--text-dim);font-size:0.75rem;">' + escH((fb.at || '').slice(0, 19)) + '</span></div>';
+        }
+      } else {
+        body += '<div style="color:var(--text-dim);font-size:0.85rem;">No feedback yet</div>';
+      }
+      body += '</div>';
+
+      // Feedback form
+      body += '<div class="dp-section"><h4>Actions</h4>';
+      body += '<div class="dp-feedback-form">';
+      body += '<input type="text" id="dpFrom" placeholder="From" value="reviewer">';
+      body += '<input type="text" id="dpMsg" placeholder="Message (required for comment)">';
+      body += '<div class="dp-feedback-btns">';
+      body += '<button class="dp-fb-btn accept" onclick="dpFeedback(\\'accept\\')">Accept</button>';
+      body += '<button class="dp-fb-btn reject" onclick="dpFeedback(\\'reject\\')">Reject</button>';
+      body += '<button class="dp-fb-btn comment-btn" onclick="dpFeedback(\\'comment\\')">Comment</button>';
+      body += '</div></div></div>';
+
+      document.getElementById('dpBody').innerHTML = body;
+      document.getElementById('detailPanel').classList.add('open');
+      document.getElementById('panelOverlay').classList.add('open');
+      document.body.classList.add('panel-open');
+    }
+
+    function closeDetailPanel() {
+      document.getElementById('detailPanel').classList.remove('open');
+      document.getElementById('panelOverlay').classList.remove('open');
+      document.body.classList.remove('panel-open');
+      selectedReqId = null;
+    }
+
+    document.getElementById('dpClose').addEventListener('click', closeDetailPanel);
+    document.getElementById('panelOverlay').addEventListener('click', closeDetailPanel);
+
+    // Panel feedback
+    window.dpFeedback = function(action) {
+      if (!selectedReqId) return;
+      var msgEl = document.getElementById('dpMsg');
+      var fromEl = document.getElementById('dpFrom');
+      var message = msgEl ? msgEl.value : '';
+      var from = fromEl ? fromEl.value : 'reviewer';
+
+      if (action === 'comment' && !message.trim()) {
+        showToast('Message is required for comment');
+        return;
+      }
+
+      var body = { action: action, from: from || 'reviewer' };
+      if (message.trim()) body.message = message.trim();
+
+      api('POST', '/api/specs/' + encodeURIComponent(selectedReqId) + '/feedback', body)
+        .then(function(res) {
+          if (res.error) { showToast('Error: ' + res.error); return; }
+          showToast(selectedReqId + ': ' + action + ' \\u2714');
+          if (msgEl) msgEl.value = '';
+          loadSpecs();
+          // Re-open to refresh
+          setTimeout(function() {
+            if (selectedReqId) openDetailPanel(selectedReqId);
+          }, 300);
+        });
+    };
+
+    // ============ List View Filters ============
     function applyFilters() {
       var domain = document.getElementById('domainFilter').value;
       var search = document.getElementById('searchBox').value.toLowerCase().trim();
@@ -450,7 +1022,7 @@ export function renderDashboard(projectName: string): string {
     }
     window.applyFilters = applyFilters;
 
-    // ============ Toggle filter ============
+    // ============ Toggle filter (list view) ============
     window.toggleFilter = function(btn) {
       var filter = btn.getAttribute('data-filter');
       var value = btn.getAttribute('data-value');
@@ -470,7 +1042,7 @@ export function renderDashboard(projectName: string): string {
       applyFilters();
     };
 
-    // ============ Render REQs ============
+    // ============ Render REQs (list view) ============
     function renderReqs() {
       var total = filteredReqs.length;
       var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -550,7 +1122,7 @@ export function renderDashboard(projectName: string): string {
       document.getElementById('pagination').innerHTML = pagHtml;
     }
 
-    // ============ Toggle detail ============
+    // ============ Toggle detail (list view) ============
     window.toggleDetail = function(id) {
       openDetails[id] = !openDetails[id];
       renderReqs();
@@ -562,7 +1134,7 @@ export function renderDashboard(projectName: string): string {
       renderReqs();
     };
 
-    // ============ Feedback ============
+    // ============ Feedback (list view) ============
     window.doFeedback = function(reqId, action) {
       var msgEl = document.getElementById('msg-' + reqId);
       var fromEl = document.getElementById('from-' + reqId);
@@ -602,18 +1174,46 @@ export function renderDashboard(projectName: string): string {
     };
 
     // ============ Event listeners ============
+    // List view
     document.getElementById('domainFilter').addEventListener('change', applyFilters);
     document.getElementById('searchBox').addEventListener('input', applyFilters);
-    document.querySelectorAll('.filter-btn').forEach(function(btn) {
+    document.querySelectorAll('[data-filter]').forEach(function(btn) {
       btn.addEventListener('click', function() { toggleFilter(btn); });
+    });
+
+    // Board view
+    document.getElementById('boardDomainFilter').addEventListener('change', function() { renderKanban(); });
+    document.getElementById('boardAssigneeFilter').addEventListener('change', function() { renderKanban(); });
+    document.getElementById('boardRequesterFilter').addEventListener('change', function() { renderKanban(); });
+    document.getElementById('boardSearchBox').addEventListener('input', function() { renderKanban(); });
+    document.querySelectorAll('[data-board-filter]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var value = btn.getAttribute('data-value');
+        boardPriorityFilter = value;
+        // Update button styles
+        document.querySelectorAll('[data-board-filter="priority"]').forEach(function(b) {
+          b.className = 'filter-btn';
+        });
+        if (value === 'ALL') {
+          btn.classList.add('active');
+        } else {
+          btn.classList.add('active-' + value.toLowerCase());
+        }
+        renderKanban();
+      });
+    });
+
+    // Keyboard: Escape to close panel
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeDetailPanel();
     });
 
     // ============ Refresh ============
     function refreshAll() {
       loadStatus();
       loadDeliverables();
-      loadSpecs();
       loadTasks();
+      loadSpecs();
       loadAudit();
     }
 
