@@ -2,7 +2,8 @@ id: REQ-AGNT-009
 title: 컨텍스트 80% 자동 로그
 priority: MEDIUM
 description: 토큰 소진 감지 → 로그 강제
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

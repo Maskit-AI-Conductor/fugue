@@ -2,7 +2,8 @@ id: REQ-PMO-011
 title: 에이전트 5차원 퍼포먼스
 priority: MEDIUM
 description: D1완수율+D2품질+D3SLA+D4효율+D5협업 = 종합점수
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

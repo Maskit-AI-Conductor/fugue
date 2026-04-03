@@ -2,7 +2,8 @@ id: REQ-PLAN-005
 title: 변경관리 — modify
 priority: HIGH
 description: 기존 REQ 수정 + 영향 표시
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

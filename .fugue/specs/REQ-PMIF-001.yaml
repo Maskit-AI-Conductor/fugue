@@ -2,7 +2,8 @@ id: REQ-PMIF-001
 title: pm-daily 워크플로우 프리셋
 priority: HIGH
 description: status → audit(quick) → 블로커 REQ 목록 + Progressive Detail 승급 제안 목록을 한 번에 출력하는 워크플로우
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

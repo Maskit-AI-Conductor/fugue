@@ -2,7 +2,8 @@ id: REQ-CORE-006
 title: AI의 관리자
 priority: HIGH
 description: 코드를 안 짬. 에이전트가 만든 것을 추적/감리
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:42.003Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

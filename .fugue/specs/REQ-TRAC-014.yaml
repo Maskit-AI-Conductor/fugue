@@ -2,7 +2,8 @@ id: REQ-TRAC-014
 title: 기존 REQ YAML 하위호환
 priority: HIGH
 description: '새 필드가 없는 기존 REQ도 정상 동작. 기본값: detail_level=1, revision=0, history=[], ai_context=null'
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

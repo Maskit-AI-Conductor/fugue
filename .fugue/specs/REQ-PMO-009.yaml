@@ -2,7 +2,8 @@ id: REQ-PMO-009
 title: Crosscheck Loop 전체 8단계
 priority: HIGH
 description: SUBMIT→AUDIT→REWORK→SYNC→ACK→RESOLVE→ESCALATE→GATE PASS
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

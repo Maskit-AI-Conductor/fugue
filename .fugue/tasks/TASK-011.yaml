@@ -2,7 +2,7 @@ id: TASK-011
 title: Progressive Detail — 자동 상세화 추적 시스템
 requester: CEO
 assignees: []
-status: DECOMPOSED
+status: DEV
 created_at: '2026-04-02T22:54:59.725Z'
 updated_at: '2026-04-03T00:00:00.000Z'
 req_ids:
@@ -48,5 +48,6 @@ req_ids:
   - REQ-AGNT-011
   - REQ-AGNT-012
   - REQ-AGNT-013
+  - REQ-TRAC-017
 escalations: []
 plan_file: plans/TASK-011_11-traceability-and-change-mgmt_2026-04-02T23-29-38.md

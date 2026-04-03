@@ -2,7 +2,8 @@ id: REQ-PMO-004
 title: 인테이크 프로토콜 4단계
 priority: HIGH
 description: 소크라테스식 질문 (Why→What→How→Confirm). 프로젝트 딕셔너리 생성
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

@@ -2,7 +2,8 @@ id: REQ-PMO-013
 title: 디자인 패턴 카탈로그
 priority: MEDIUM
 description: 프로젝트 유형(NB/LR/FA/PL) × 규모 = 패턴 자동 선정
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

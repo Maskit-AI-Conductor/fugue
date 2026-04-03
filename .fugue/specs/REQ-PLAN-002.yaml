@@ -2,7 +2,8 @@ id: REQ-PLAN-002
 title: REQ ID로 분해
 priority: HIGH
 description: conductor/SLM이 기획문서에서 REQ 추출
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

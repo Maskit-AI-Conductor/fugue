@@ -2,7 +2,8 @@ id: REQ-TRAC-013
 title: 필드 변경 시 자동 history 기록
 priority: HIGH
 description: title, description, priority, status 변경 시 이전 값을 history에 자동 기록한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

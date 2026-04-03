@@ -2,7 +2,8 @@ id: REQ-MODL-014
 title: Credential 헬스체크
 priority: MEDIUM
 description: add 시 health check
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

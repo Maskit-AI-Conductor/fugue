@@ -2,7 +2,8 @@ id: REQ-SNAP-017
 title: 대형 레포 청크 처리
 priority: HIGH
 description: 파일 제한 있으나 디렉토리 단위 미구현
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

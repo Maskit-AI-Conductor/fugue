@@ -2,7 +2,8 @@ id: REQ-TRAC-012
 title: REQ YAML에 revision/history 필드 추가
 priority: HIGH
 description: revision(숫자)과 history 배열(rev, at, by, field, from, to, reason)을 추가한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

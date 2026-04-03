@@ -2,7 +2,8 @@ id: REQ-TRAC-015
 title: 통합 타임라인 조회
 priority: MEDIUM
 description: fugue plan history에서 feedback + 변경이력을 시간순 통합 타임라인으로 보여준다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

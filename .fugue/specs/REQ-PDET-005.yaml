@@ -2,7 +2,8 @@ id: REQ-PDET-005
 title: ai_context 자동 생성 (L2 엔진)
 priority: HIGH
 description: code_refs가 L2 임계치 초과 REQ에 대해 Conductor가 코드를 분석하여 summary, key_rules, common_mistakes를 자동 생성한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

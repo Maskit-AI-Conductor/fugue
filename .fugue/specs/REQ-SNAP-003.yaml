@@ -2,7 +2,8 @@ id: REQ-SNAP-003
 title: E2E 추적성 매트릭스
 priority: HIGH
 description: matrix.yaml 자동 생성
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

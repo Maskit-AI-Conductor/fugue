@@ -2,7 +2,8 @@ id: REQ-PMO-015
 title: 산출물 납품 판정
 priority: HIGH
 description: 산출물 세트 완성 → Gate PASS → 요청자에게 정식 납품
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

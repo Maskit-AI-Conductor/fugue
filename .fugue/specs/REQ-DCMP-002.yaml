@@ -2,7 +2,8 @@ id: REQ-DCMP-002
 title: 포맷별 프롬프트 템플릿
 priority: MEDIUM
 description: 감지된 포맷에 최적화된 프롬프트 템플릿을 사용한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

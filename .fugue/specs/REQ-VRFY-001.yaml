@@ -2,7 +2,8 @@ id: REQ-VRFY-001
 title: fugue verify CLI 명령어
 priority: MEDIUM
 description: fugue verify [--since <commit>]로 변경 파일→REQ 역매핑, NO_TEST/TEST_NEEDED 경고 출력
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

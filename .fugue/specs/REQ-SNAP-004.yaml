@@ -2,7 +2,8 @@ id: REQ-SNAP-004
 title: 파일 배치 처리
 priority: HIGH
 description: MAX_BATCH_CHARS 기반 청크 분할
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

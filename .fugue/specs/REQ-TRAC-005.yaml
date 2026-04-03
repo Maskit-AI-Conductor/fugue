@@ -2,7 +2,8 @@ id: REQ-TRAC-005
 title: fugue sync CLI 명령어
 priority: HIGH
 description: fugue sync [--since <commit>] [--dry-run] [--auto-enrich] CLI를 구현한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

@@ -2,7 +2,8 @@ id: REQ-SNAP-016
 title: 예상 소요시간
 priority: LOW
 description: 남은 시간 추정
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

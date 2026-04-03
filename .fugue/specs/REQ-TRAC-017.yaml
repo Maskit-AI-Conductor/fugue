@@ -1,0 +1,9 @@
+id: REQ-TRAC-017
+title: REQ YAML에 methodology_ref 필드 추가
+priority: LOW
+description: 'REQ가 방법론의 어떤 챕터/원칙을 구현하는지 참조하는 선택적 필드. 예: methodology_ref: ch05-traceability'
+status: CONFIRMED
+created: '2026-04-03T00:46:53.444Z'
+code_refs: []
+test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

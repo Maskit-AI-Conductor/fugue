@@ -2,7 +2,8 @@ id: REQ-PDET-008
 title: 수동 편집 ai_context 보존
 priority: MEDIUM
 description: auto_generated 플래그로 수동 편집 여부를 추적하고, --force 없이 덮어쓰지 않는다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

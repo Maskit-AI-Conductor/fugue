@@ -2,7 +2,8 @@ id: REQ-PMO-014
 title: CSR 프로세스 (변경요청)
 priority: MEDIUM
 description: Cat-1(PM승인) / Cat-2(CEO승인) / Cat-3(수용불가)
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

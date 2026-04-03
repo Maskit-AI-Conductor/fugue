@@ -2,7 +2,8 @@ id: REQ-TRAC-009
 title: REQ YAML에 ai_context 필드 추가
 priority: HIGH
 description: summary(100자), key_rules(3~5개), common_mistakes(2~4개) 구조의 ai_context 객체를 스키마에 추가한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

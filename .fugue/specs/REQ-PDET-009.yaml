@@ -2,7 +2,8 @@ id: REQ-PDET-009
 title: Policy MD 자동 생성 (L3 엔진)
 priority: HIGH
 description: 'L3 임계치 초과 REQ에 대해 Conductor가 코드에서 정책문서를 역생성한다. 구조: frontmatter + 비즈니스 규칙(조건→행동→결과) + 코드 스니펫 + 에러 케이스'
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

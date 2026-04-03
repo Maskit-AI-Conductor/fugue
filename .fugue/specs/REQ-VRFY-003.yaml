@@ -2,7 +2,8 @@ id: REQ-VRFY-003
 title: 빈 matrix 시 sync 안내
 priority: LOW
 description: matrix가 비어있으면 fugue sync 실행을 먼저 안내한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

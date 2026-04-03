@@ -2,7 +2,8 @@ id: REQ-AGNT-012
 title: 에이전트 권고 승인 워크플로우
 priority: MEDIUM
 description: 갭 분석 결과를 유저에게 제시하고, 승인(accept)/거부(dismiss)/수정(edit) 선택지를 제공한다. 승인 시 프롬프트 생성으로 이어진다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-03T00:00:20.681Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

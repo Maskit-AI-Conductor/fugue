@@ -2,7 +2,8 @@ id: REQ-AGNT-013
 title: CLAUDE.md 스캐폴드 생성
 priority: HIGH
 description: .claude/CLAUDE.md가 없는 프로젝트에서 fugue init 시, 프로젝트 구조를 분석하여 빌드 명령/아키텍처/REQ 참조 규칙을 포함한 CLAUDE.md 초안을 자동 생성한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-03T00:00:20.681Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

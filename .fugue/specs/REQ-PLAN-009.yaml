@@ -2,7 +2,8 @@ id: REQ-PLAN-009
 title: 변경관리 — impact
 priority: HIGH
 description: REQ 변경 시 영향도 분석
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

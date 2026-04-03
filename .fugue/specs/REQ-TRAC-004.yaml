@@ -2,7 +2,8 @@ id: REQ-TRAC-004
 title: 삭제된 파일 STALE 마킹
 priority: MEDIUM
 description: 이미 매핑된 파일이 파일시스템에서 삭제된 경우 해당 ref를 STALE로 마킹한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

@@ -2,7 +2,8 @@ id: REQ-TRAC-011
 title: REQ YAML에 detail_level 필드 추가
 priority: HIGH
 description: 0~3 정수로 현재 상세화 수준을 나타내는 detail_level 필드를 추가한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>fugue Report — bpro (2026-04-02)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 1000px; margin: 40px auto; padding: 0 20px; color: #333; background: #fafafa; }
+    h1 { font-size: 1.5rem; margin-bottom: 4px; }
+    .subtitle { color: #888; margin-bottom: 24px; }
+    .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: #555; }
+    .progress-bar { background: #e5e5e5; border-radius: 4px; height: 24px; overflow: hidden; margin-bottom: 8px; }
+    .progress-fill { background: #22c55e; height: 100%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { text-align: left; padding: 8px; border-bottom: 2px solid #e5e5e5; color: #888; font-weight: 600; }
+    td { padding: 8px; border-bottom: 1px solid #f0f0f0; }
+    .status { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+    .status-done { color: #22c55e; }
+    .status-dev { color: #eab308; }
+    .status-confirmed { color: #3b82f6; }
+    .status-draft { color: #999; }
+    .status-stale { color: #ef4444; }
+    .status-deprecated { color: #999; text-decoration: line-through; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+    .metric { text-align: center; }
+    .metric .value { font-size: 2rem; font-weight: 700; color: #111; }
+    .metric .label { font-size: 0.8rem; color: #888; }
+    .del-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+    .del-icon { width: 20px; text-align: center; }
+    .del-id { color: #3b82f6; font-weight: 600; width: 40px; }
+    .del-name { flex: 1; }
+    .del-detail { color: #888; font-size: 0.85rem; }
+    footer { text-align: center; color: #aaa; font-size: 0.8rem; margin-top: 40px; padding: 20px 0; }
+
+    /* Filters */
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+    .filter-group { display: flex; gap: 4px; align-items: center; }
+    .filter-group label { font-size: 0.8rem; color: #888; margin-right: 4px; font-weight: 600; }
+    .filter-btn { padding: 4px 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
+    .filter-btn:hover { border-color: #999; }
+    .filter-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+    .filter-btn.active-high { background: #ef4444; color: white; border-color: #ef4444; }
+    .filter-btn.active-medium { background: #eab308; color: white; border-color: #eab308; }
+    .filter-btn.active-low { background: #999; color: white; border-color: #999; }
+    .search-box { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; width: 220px; }
+    .search-box:focus { outline: none; border-color: #3b82f6; }
+    select.domain-select { padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: white; }
+
+    /* Stats bars */
+    .stat-bars { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .stat-bar-row { display: flex; align-items: center; gap: 8px; }
+    .stat-bar-label { width: 80px; font-size: 0.8rem; color: #666; text-align: right; }
+    .stat-bar-track { flex: 1; background: #e5e5e5; border-radius: 3px; height: 16px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 3px; display: flex; align-items: center; padding-left: 6px; font-size: 0.7rem; color: white; font-weight: 600; }
+    .stat-bar-count { width: 30px; font-size: 0.8rem; color: #888; }
+
+    /* Collapsible */
+    .req-row { cursor: pointer; user-select: none; }
+    .req-row:hover { background: #f8f8f8; }
+    .req-detail { display: none; }
+    .req-detail.open { display: table-row; }
+    .req-detail td { padding: 12px 20px; background: #f9fafb; border-bottom: 1px solid #e5e5e5; }
+    .detail-grid { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; font-size: 0.85rem; }
+    .detail-label { color: #888; font-weight: 600; }
+    .detail-value { color: #333; word-break: break-all; }
+    .detail-value code { background: #e5e7eb; padding: 1px 4px; border-radius: 2px; font-size: 0.8rem; }
+    .chevron { display: inline-block; transition: transform 0.15s; font-size: 0.7rem; margin-right: 4px; }
+    .chevron.open { transform: rotate(90deg); }
+
+    /* Pagination */
+    .pagination { display: flex; justify-content: center; gap: 4px; margin-top: 12px; align-items: center; }
+    .page-btn { padding: 4px 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; font-size: 0.8rem; }
+    .page-btn:hover { border-color: #999; }
+    .page-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+    .page-btn:disabled { opacity: 0.4; cursor: default; }
+    .page-info { font-size: 0.8rem; color: #888; margin: 0 8px; }
+
+    /* Count badge */
+    .count-badge { display: inline-block; background: #e5e7eb; color: #555; font-size: 0.75rem; padding: 1px 6px; border-radius: 10px; margin-left: 4px; }
+  </style>
+</head>
+<body>
+  <h1>bpro</h1>
+  <div class="subtitle">fugue Report — Generated 2026-04-02</div>
+
+  <div class="card">
+    <h2>Progress</h2>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 0%">0%</div>
+    </div>
+    <div class="grid" style="margin-top: 16px;">
+      <div class="metric"><div class="value">0/146</div><div class="label">REQs Done</div></div>
+      <div class="metric"><div class="value">0/0</div><div class="label">Code Mapped</div></div>
+      <div class="metric"><div class="value">0/0</div><div class="label">Tests Mapped</div></div>
+      <div class="metric"><div class="value">0</div><div class="label">Stale</div></div>
+    </div>
+  </div>
+
+  <!-- Statistics -->
+  <div class="card">
+    <h2>Statistics</h2>
+    <div class="grid">
+      <div>
+        <h3 style="font-size:0.9rem; color:#666; margin-bottom:6px;">Priority Distribution</h3>
+        <div class="stat-bars">
+          <div class="stat-bar-row"><span class="stat-bar-label">HIGH</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:100%; background:#ef4444">76</div></div><span class="stat-bar-count">76</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label">MEDIUM</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:75%; background:#eab308">57</div></div><span class="stat-bar-count">57</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label">LOW</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:17%; background:#999">13</div></div><span class="stat-bar-count">13</span></div>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-size:0.9rem; color:#666; margin-bottom:6px;">Domain Distribution</h3>
+        <div class="stat-bars">
+          <div class="stat-bar-row"><span class="stat-bar-label" title="AGNT">AGNT</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:6%; background:#3b82f6">9</div></div><span class="stat-bar-count">9</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="CORE">CORE</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:5%; background:#3b82f6">7</div></div><span class="stat-bar-count">7</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="DCMP">DCMP</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:3%; background:#3b82f6">4</div></div><span class="stat-bar-count">4</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="DLVR">DLVR</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:5%; background:#3b82f6">8</div></div><span class="stat-bar-count">8</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="INFR">INFR</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:4%; background:#3b82f6">6</div></div><span class="stat-bar-count">6</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="MODL">MODL</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:10%; background:#3b82f6">14</div></div><span class="stat-bar-count">14</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="PDET">PDET</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:8%; background:#3b82f6">12</div></div><span class="stat-bar-count">12</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="PLAN">PLAN</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:6%; background:#3b82f6">9</div></div><span class="stat-bar-count">9</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="PMIF">PMIF</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:2%; background:#3b82f6">3</div></div><span class="stat-bar-count">3</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="PMO">PMO</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:14%; background:#3b82f6">20</div></div><span class="stat-bar-count">20</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="REPT">REPT</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:5%; background:#3b82f6">7</div></div><span class="stat-bar-count">7</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="SNAP">SNAP</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:12%; background:#3b82f6">17</div></div><span class="stat-bar-count">17</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="TASK">TASK</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:8%; background:#3b82f6">12</div></div><span class="stat-bar-count">12</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="TRAC">TRAC</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:10%; background:#3b82f6">15</div></div><span class="stat-bar-count">15</span></div>
+          <div class="stat-bar-row"><span class="stat-bar-label" title="VRFY">VRFY</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:2%; background:#3b82f6">3</div></div><span class="stat-bar-count">3</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Deliverables</h2>
+    <div class="del-row"><span class="del-icon">✓</span><span class="del-id">D.01</span><span class="del-name">Planning Doc</span><span class="del-detail">imported</span></div>
+    <div class="del-row"><span class="del-icon">◉</span><span class="del-id">D.02</span><span class="del-name">Requirements</span><span class="del-detail">146 draft</span></div>
+    <div class="del-row"><span class="del-icon">○</span><span class="del-id">D.03</span><span class="del-name">Traceability Matrix</span><span class="del-detail">0/146 mapped</span></div>
+    <div class="del-row"><span class="del-icon">○</span><span class="del-id">D.04</span><span class="del-name">Design Doc</span><span class="del-detail">optional</span></div>
+    <div class="del-row"><span class="del-icon">○</span><span class="del-id">D.05</span><span class="del-name">Implementation</span><span class="del-detail">0/146 done</span></div>
+    <div class="del-row"><span class="del-icon">○</span><span class="del-id">D.06</span><span class="del-name">Tests</span><span class="del-detail">0/146 pass</span></div>
+    <div class="del-row"><span class="del-icon">○</span><span class="del-id">D.07</span><span class="del-name">Audit Report</span><span class="del-detail">gate not run</span></div>
+    <div class="del-row"><span class="del-icon">○</span><span class="del-id">D.08</span><span class="del-name">Progress Report</span><span class="del-detail">not generated</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Requirements <span id="reqCount" class="count-badge">146</span></h2>
+
+    <!-- Filters -->
+    <div class="filters">
+      <div class="filter-group">
+        <label>Domain:</label>
+        <select class="domain-select" id="domainFilter" onchange="applyFilters()">
+          <option value="">All</option>
+          <option value="AGNT">AGNT</option>
+          <option value="CORE">CORE</option>
+          <option value="DCMP">DCMP</option>
+          <option value="DLVR">DLVR</option>
+          <option value="INFR">INFR</option>
+          <option value="MODL">MODL</option>
+          <option value="PDET">PDET</option>
+          <option value="PLAN">PLAN</option>
+          <option value="PMIF">PMIF</option>
+          <option value="PMO">PMO</option>
+          <option value="REPT">REPT</option>
+          <option value="SNAP">SNAP</option>
+          <option value="TASK">TASK</option>
+          <option value="TRAC">TRAC</option>
+          <option value="VRFY">VRFY</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Priority:</label>
+        <button class="filter-btn" data-filter="priority" data-value="HIGH" onclick="toggleFilter(this)">HIGH</button>
+        <button class="filter-btn" data-filter="priority" data-value="MEDIUM" onclick="toggleFilter(this)">MEDIUM</button>
+        <button class="filter-btn" data-filter="priority" data-value="LOW" onclick="toggleFilter(this)">LOW</button>
+      </div>
+      <div class="filter-group">
+        <label>Status:</label>
+        <button class="filter-btn" data-filter="status" data-value="DRAFT" onclick="toggleFilter(this)">DRAFT</button>
+        <button class="filter-btn" data-filter="status" data-value="CONFIRMED" onclick="toggleFilter(this)">CONFIRMED</button>
+        <button class="filter-btn" data-filter="status" data-value="DEV" onclick="toggleFilter(this)">DEV</button>
+        <button class="filter-btn" data-filter="status" data-value="DONE" onclick="toggleFilter(this)">DONE</button>
+        <button class="filter-btn" data-filter="status" data-value="STALE" onclick="toggleFilter(this)">STALE</button>
+        <button class="filter-btn" data-filter="status" data-value="DEPRECATED" onclick="toggleFilter(this)">DEPRECATED</button>
+      </div>
+      <div class="filter-group" style="margin-left:auto;">
+        <input type="text" class="search-box" id="searchBox" placeholder="Search REQ ID or title..." oninput="applyFilters()">
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th></th><th>ID</th><th>Status</th><th>Priority</th><th>Title</th></tr></thead>
+      <tbody id="reqTableBody">
+      </tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <footer>Generated by fugue v0.2.0 — Fugue</footer>
+
+  <script>
+  (function() {
+    var ALL_REQS = [{"id":"REQ-AGNT-001","title":"에이전트 작업범위 지정","status":"DRAFT","priority":"HIGH","description":"agent define --scope","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"AGNT","yamlPath":".fugue/specs/REQ-AGNT-001.yaml"},{"id":"REQ-AGNT-002","title":"업무매뉴얼 지정","status":"DRAFT","priority":"HIGH","description":"--manual 연결","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"AGNT","yamlPath":".fugue/specs/REQ-AGNT-002.yaml"},{"id":"REQ-AGNT-003","title":"--never 옵션","status":"DRAFT","priority":"HIGH","description":"\"하지 말 것\" > \"할 것\"","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"AGNT","yamlPath":".fugue/specs/REQ-AGNT-003.yaml"},{"id":"REQ-AGNT-004","title":"업무일지 자동 작성","status":"DRAFT","priority":"MEDIUM","description":"JSONL 형태 매 실행 기록","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"AGNT","yamlPath":".fugue/specs/REQ-AGNT-004.yaml"},{"id":"REQ-AGNT-005","title":"퍼포먼스 평가","status":"DRAFT","priority":"MEDIUM","description":"agent eval — 성공률/실행횟수","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"AGNT","yamlPath":".fugue/specs/REQ-AGNT-005.yaml"},{"id":"REQ-AGNT-006","title":"--collaborators","status":"DRAFT","priority":"MEDIUM","description":"다중 에이전트 역할 경계 선언","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"AGNT","yamlPath":".fugue/specs/REQ-AGNT-006.yaml"},{"id":"REQ-AGNT-007","title":"ANDON 침범 감지","status":"DRAFT","priority":"HIGH","description":"detect+escalate 자동화","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"AGNT","yamlPath":".fugue/specs/REQ-AGNT-007.yaml"},{"id":"REQ-AGNT-008","title":"starter template","status":"DRAFT","priority":"LOW","description":"신규 에이전트 빠른 설정","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"AGNT","yamlPath":".fugue/specs/REQ-AGNT-008.yaml"},{"id":"REQ-AGNT-009","title":"컨텍스트 80% 자동 로그","status":"DRAFT","priority":"MEDIUM","description":"토큰 소진 감지 → 로그 강제","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"AGNT","yamlPath":".fugue/specs/REQ-AGNT-009.yaml"},{"id":"REQ-CORE-001","title":"모델 비종속 아키텍처","status":"DRAFT","priority":"HIGH","description":"어떤 LLM/SLM이든 어댑터로 연결 가능. 플랫폼 락인 없음","created":"2026-03-25T14:38:42.003Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"CORE","yamlPath":".fugue/specs/REQ-CORE-001.yaml"},{"id":"REQ-CORE-002","title":"SLM 퍼스트 설계","status":"DRAFT","priority":"HIGH","description":"기본값은 SLM, 고수준 판단만 LLM 폴백","created":"2026-03-25T14:38:42.003Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"CORE","yamlPath":".fugue/specs/REQ-CORE-002.yaml"},{"id":"REQ-CORE-003","title":"CLI 도구","status":"DRAFT","priority":"HIGH","description":"git처럼 비대화형 CLI. Commander.js 기반","created":"2026-03-25T14:38:42.003Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"CORE","yamlPath":".fugue/specs/REQ-CORE-003.yaml"},{"id":"REQ-CORE-004","title":"MCP 서버","status":"DRAFT","priority":"HIGH","description":"Claude Code/Cursor/Codex에서 @fugue로 호출 가능","created":"2026-03-25T14:38:42.003Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"CORE","yamlPath":".fugue/specs/REQ-CORE-004.yaml"},{"id":"REQ-CORE-005","title":"git처럼 밑에 깔리는 도구","status":"DRAFT","priority":"MEDIUM","description":".fugue/ 디렉토리 기반. AI 도구 독립적","created":"2026-03-25T14:38:42.003Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"CORE","yamlPath":".fugue/specs/REQ-CORE-005.yaml"},{"id":"REQ-CORE-006","title":"AI의 관리자","status":"DRAFT","priority":"HIGH","description":"코드를 안 짬. 에이전트가 만든 것을 추적/감리","created":"2026-03-25T14:38:42.003Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"CORE","yamlPath":".fugue/specs/REQ-CORE-006.yaml"},{"id":"REQ-CORE-007","title":"사이드프로젝트→프로덕션","status":"DRAFT","priority":"HIGH","description":"역설계+감리+추적성으로 프로덕션 품질 확보","created":"2026-03-25T14:38:42.003Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"CORE","yamlPath":".fugue/specs/REQ-CORE-007.yaml"},{"id":"REQ-DCMP-001","title":"문서 포맷 자동 감지","status":"DRAFT","priority":"MEDIUM","description":"decompose 시 마크다운 헤딩, 린캔버스, 태스크 체크리스트 등 포맷을 자동 감지한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DCMP","yamlPath":".fugue/specs/REQ-DCMP-001.yaml"},{"id":"REQ-DCMP-002","title":"포맷별 프롬프트 템플릿","status":"DRAFT","priority":"MEDIUM","description":"감지된 포맷에 최적화된 프롬프트 템플릿을 사용한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DCMP","yamlPath":".fugue/specs/REQ-DCMP-002.yaml"},{"id":"REQ-DCMP-003","title":"decompose dry-run","status":"DRAFT","priority":"LOW","description":"fugue plan decompose --dry-run으로 생성될 REQ를 미리보기한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DCMP","yamlPath":".fugue/specs/REQ-DCMP-003.yaml"},{"id":"REQ-DCMP-004","title":"기존 CONFIRMED REQ 중복 경고","status":"DRAFT","priority":"LOW","description":"decompose 결과가 기존 CONFIRMED REQ와 중복되면 경고를 출력한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DCMP","yamlPath":".fugue/specs/REQ-DCMP-004.yaml"},{"id":"REQ-DLVR-001","title":"D.01~D.08 산출물 계층","status":"DRAFT","priority":"HIGH","description":"status --deliverables 트리","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DLVR","yamlPath":".fugue/specs/REQ-DLVR-001.yaml"},{"id":"REQ-DLVR-002","title":"Gate 차단 규칙","status":"DRAFT","priority":"HIGH","description":"판정은 있으나 실제 착수 차단 미구현","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DLVR","yamlPath":".fugue/specs/REQ-DLVR-002.yaml"},{"id":"REQ-DLVR-003","title":"status --deliverables","status":"DRAFT","priority":"HIGH","description":"산출물별 상태 표시","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DLVR","yamlPath":".fugue/specs/REQ-DLVR-003.yaml"},{"id":"REQ-DLVR-004","title":"Crosscheck 기본 (3단계)","status":"DRAFT","priority":"HIGH","description":"SUBMIT→AUDIT→REWORK","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DLVR","yamlPath":".fugue/specs/REQ-DLVR-004.yaml"},{"id":"REQ-DLVR-005","title":"Crosscheck 확장 (8단계)","status":"DRAFT","priority":"LOW","description":"ACK/RESOLVE/ESCALATE/GATE PASS","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DLVR","yamlPath":".fugue/specs/REQ-DLVR-005.yaml"},{"id":"REQ-DLVR-006","title":"Quick audit","status":"DRAFT","priority":"HIGH","description":"파일 기반, SLM 불필요","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DLVR","yamlPath":".fugue/specs/REQ-DLVR-006.yaml"},{"id":"REQ-DLVR-007","title":"Gate 판정","status":"DRAFT","priority":"HIGH","description":"PASS/CONDITIONAL/FAIL","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DLVR","yamlPath":".fugue/specs/REQ-DLVR-007.yaml"},{"id":"REQ-DLVR-008","title":"SLM 심층 감사","status":"DRAFT","priority":"MEDIUM","description":"--deep으로 의미론적 감사","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"DLVR","yamlPath":".fugue/specs/REQ-DLVR-008.yaml"},{"id":"REQ-INFR-001","title":"MCP — Claude Code","status":"DRAFT","priority":"HIGH","description":"@fugue로 호출","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"INFR","yamlPath":".fugue/specs/REQ-INFR-001.yaml"},{"id":"REQ-INFR-002","title":"MCP — Cursor","status":"DRAFT","priority":"MEDIUM","description":"동일 인터페이스","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"INFR","yamlPath":".fugue/specs/REQ-INFR-002.yaml"},{"id":"REQ-INFR-003","title":"fugue init","status":"DRAFT","priority":"HIGH","description":".fugue/ + 자동 스캔 + conductor","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"INFR","yamlPath":".fugue/specs/REQ-INFR-003.yaml"},{"id":"REQ-INFR-004","title":".gitignore 자동","status":"DRAFT","priority":"HIGH","description":"credentials 보호","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"INFR","yamlPath":".fugue/specs/REQ-INFR-004.yaml"},{"id":"REQ-INFR-005","title":"SLM 절삭 트레이드오프","status":"DRAFT","priority":"MEDIUM","description":"무리한 SLM 사용 방지 경고","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"INFR","yamlPath":".fugue/specs/REQ-INFR-005.yaml"},{"id":"REQ-INFR-006","title":"dog-fooding","status":"DRAFT","priority":"HIGH","description":"fugue로 fugue 관리","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"INFR","yamlPath":".fugue/specs/REQ-INFR-006.yaml"},{"id":"REQ-MODL-001","title":"model add","status":"DRAFT","priority":"HIGH","description":"대화형 프리셋 + 구독/API","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-001.yaml"},{"id":"REQ-MODL-002","title":"model list","status":"DRAFT","priority":"HIGH","description":"등록 모델 + conductor 표시","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-002.yaml"},{"id":"REQ-MODL-003","title":"model remove","status":"DRAFT","priority":"MEDIUM","description":"모델 제거","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-003.yaml"},{"id":"REQ-MODL-004","title":"구독/API 선택","status":"DRAFT","priority":"HIGH","description":"모든 모델에서 구독/API 선택","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-004.yaml"},{"id":"REQ-MODL-005","title":"conductor 선택","status":"DRAFT","priority":"HIGH","description":"대화형 선택","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-005.yaml"},{"id":"REQ-MODL-006","title":"aiops 자동 배정","status":"DRAFT","priority":"MEDIUM","description":"규칙 기반 역할별 배정","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-006.yaml"},{"id":"REQ-MODL-007","title":"자동 모델 스캔","status":"DRAFT","priority":"MEDIUM","description":"fugue setup","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-007.yaml"},{"id":"REQ-MODL-008","title":"일괄 등록","status":"DRAFT","priority":"MEDIUM","description":"체크박스 일괄","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-008.yaml"},{"id":"REQ-MODL-009","title":"conductor 이름","status":"DRAFT","priority":"MEDIUM","description":"config set conductor-name","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-009.yaml"},{"id":"REQ-MODL-010","title":"Codex 별도 프로바이더","status":"DRAFT","priority":"LOW","description":"현재 openai로 묶임","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-010.yaml"},{"id":"REQ-MODL-011","title":"토큰 사용량","status":"DRAFT","priority":"MEDIUM","description":"model usage","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-011.yaml"},{"id":"REQ-MODL-012","title":"비용 계산","status":"DRAFT","priority":"LOW","description":"가격표 기반 추정","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-012.yaml"},{"id":"REQ-MODL-013","title":"하드캡 타임아웃","status":"DRAFT","priority":"HIGH","description":"Ollama 300초 기본","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-013.yaml"},{"id":"REQ-MODL-014","title":"Credential 헬스체크","status":"DRAFT","priority":"MEDIUM","description":"add 시 health check","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"MODL","yamlPath":".fugue/specs/REQ-MODL-014.yaml"},{"id":"REQ-PDET-001","title":"Progressive Detail 4단계 레벨 정의","status":"DRAFT","priority":"HIGH","description":"L0(커밋태깅)→L1(REQ정의)→L2(ai_context자동)→L3(Policy자동) 4단계 상세화 모델을 config.yaml에 정의한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-001.yaml"},{"id":"REQ-PDET-002","title":"상세화 임계치 설정","status":"DRAFT","priority":"HIGH","description":"L2 임계치(기본 code_refs 5개), L3 임계치(기본 10개 또는 cross-ref 3+)를 config.yaml의 progressive_detail 섹션에서 프로젝트별 조정 가능하게 한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-002.yaml"},{"id":"REQ-PDET-003","title":"자동 승급 제안 엔진","status":"DRAFT","priority":"HIGH","description":"sync 후 각 REQ의 code_refs 수를 집계하여 임계치 초과 시 L2/L3 승급을 suggest한다. 강제가 아니라 dismiss 가능","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-003.yaml"},{"id":"REQ-PDET-004","title":"역방향 승급 (Policy→REQ)","status":"DRAFT","priority":"MEDIUM","description":"Policy MD가 먼저 작성된 경우 REQ YAML + ai_context를 Policy에서 자동 추출한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-004.yaml"},{"id":"REQ-PDET-005","title":"ai_context 자동 생성 (L2 엔진)","status":"DRAFT","priority":"HIGH","description":"code_refs가 L2 임계치 초과 REQ에 대해 Conductor가 코드를 분석하여 summary, key_rules, common_mistakes를 자동 생성한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-005.yaml"},{"id":"REQ-PDET-006","title":"fugue enrich CLI 명령어","status":"DRAFT","priority":"HIGH","description":"fugue enrich [REQ-ID] [--all] [--dry-run] [--force] CLI를 구현한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-006.yaml"},{"id":"REQ-PDET-007","title":"fugue_enrich MCP 도구","status":"DRAFT","priority":"MEDIUM","description":"동일 기능을 MCP tool로 노출한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-007.yaml"},{"id":"REQ-PDET-008","title":"수동 편집 ai_context 보존","status":"DRAFT","priority":"MEDIUM","description":"auto_generated 플래그로 수동 편집 여부를 추적하고, --force 없이 덮어쓰지 않는다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-008.yaml"},{"id":"REQ-PDET-009","title":"Policy MD 자동 생성 (L3 엔진)","status":"DRAFT","priority":"HIGH","description":"L3 임계치 초과 REQ에 대해 Conductor가 코드에서 정책문서를 역생성한다. 구조: frontmatter + 비즈니스 규칙(조건→행동→결과) + 코드 스니펫 + 에러 케이스","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-009.yaml"},{"id":"REQ-PDET-010","title":"fugue policy generate CLI","status":"DRAFT","priority":"HIGH","description":"fugue policy generate [REQ-ID] [--all] CLI를 구현한다. 생성된 Policy는 .fugue/policies/{domain}/ 에 저장","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-010.yaml"},{"id":"REQ-PDET-011","title":"fugue policy import CLI","status":"DRAFT","priority":"MEDIUM","description":"기존 Policy MD에서 REQ YAML + ai_context를 역추출하는 fugue policy import <file> CLI","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-011.yaml"},{"id":"REQ-PDET-012","title":"생성된 Policy DRAFT 상태 관리","status":"DRAFT","priority":"MEDIUM","description":"자동 생성 Policy는 DRAFT 상태. 사람이 리뷰 후 confirmed로 변경. 기존 Policy는 --force 없이 덮어쓰지 않음","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PDET","yamlPath":".fugue/specs/REQ-PDET-012.yaml"},{"id":"REQ-PLAN-001","title":"기획문서 import","status":"DRAFT","priority":"HIGH","description":".fugue/plans/에 저장","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PLAN","yamlPath":".fugue/specs/REQ-PLAN-001.yaml"},{"id":"REQ-PLAN-002","title":"REQ ID로 분해","status":"DRAFT","priority":"HIGH","description":"conductor/SLM이 기획문서에서 REQ 추출","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PLAN","yamlPath":".fugue/specs/REQ-PLAN-002.yaml"},{"id":"REQ-PLAN-003","title":"기획자 컨펌","status":"DRAFT","priority":"HIGH","description":"DRAFT→CONFIRMED 전환","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PLAN","yamlPath":".fugue/specs/REQ-PLAN-003.yaml"},{"id":"REQ-PLAN-004","title":"변경관리 — add","status":"DRAFT","priority":"HIGH","description":"신규 REQ 추가","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PLAN","yamlPath":".fugue/specs/REQ-PLAN-004.yaml"},{"id":"REQ-PLAN-005","title":"변경관리 — modify","status":"DRAFT","priority":"HIGH","description":"기존 REQ 수정 + 영향 표시","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PLAN","yamlPath":".fugue/specs/REQ-PLAN-005.yaml"},{"id":"REQ-PLAN-006","title":"변경관리 — deprecate","status":"DRAFT","priority":"MEDIUM","description":"REQ 폐기 + DEPRECATED 태깅","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PLAN","yamlPath":".fugue/specs/REQ-PLAN-006.yaml"},{"id":"REQ-PLAN-007","title":"변경관리 — diff","status":"DRAFT","priority":"MEDIUM","description":"기획문서 변경 전후 비교","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PLAN","yamlPath":".fugue/specs/REQ-PLAN-007.yaml"},{"id":"REQ-PLAN-008","title":"변경관리 — apply","status":"DRAFT","priority":"HIGH","description":"diff 결과 specs에 반영","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PLAN","yamlPath":".fugue/specs/REQ-PLAN-008.yaml"},{"id":"REQ-PLAN-009","title":"변경관리 — impact","status":"DRAFT","priority":"HIGH","description":"REQ 변경 시 영향도 분석","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PLAN","yamlPath":".fugue/specs/REQ-PLAN-009.yaml"},{"id":"REQ-PMIF-001","title":"pm-daily 워크플로우 프리셋","status":"DRAFT","priority":"HIGH","description":"status → audit(quick) → 블로커 REQ 목록 + Progressive Detail 승급 제안 목록을 한 번에 출력하는 워크플로우","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMIF","yamlPath":".fugue/specs/REQ-PMIF-001.yaml"},{"id":"REQ-PMIF-002","title":"pm-review 워크플로우 프리셋","status":"DRAFT","priority":"HIGH","description":"DRAFT REQ 순차 리뷰 → confirm까지의 워크플로우","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMIF","yamlPath":".fugue/specs/REQ-PMIF-002.yaml"},{"id":"REQ-PMIF-003","title":"PM용 MCP 사용 가이드 생성","status":"DRAFT","priority":"MEDIUM","description":"fugue agent guide --role pm 명령으로 PM 에이전트 프롬프트에 삽입할 가이드 마크다운을 생성한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMIF","yamlPath":".fugue/specs/REQ-PMIF-003.yaml"},{"id":"REQ-PMO-001","title":"T-shirt Sizing 진단","status":"DRAFT","priority":"HIGH","description":"init 시 프로젝트 규모 판정 (XS/S/M/L/XL). REQ 수, LOC, 에이전트 수 기반","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-001.yaml"},{"id":"REQ-PMO-002","title":"규모별 방법론 매핑","status":"DRAFT","priority":"HIGH","description":"XS=최소 산출물, M=Crosscheck 필수, XL=풀 감리. 자동 적용","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-002.yaml"},{"id":"REQ-PMO-003","title":"사이즈 모니터링 + 업그레이드 알림","status":"DRAFT","priority":"HIGH","description":"REQ/LOC 증가 시 사이즈 재책정. \"M→L 전환 필요\" 알림","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-003.yaml"},{"id":"REQ-PMO-004","title":"인테이크 프로토콜 4단계","status":"DRAFT","priority":"HIGH","description":"소크라테스식 질문 (Why→What→How→Confirm). 프로젝트 딕셔너리 생성","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-004.yaml"},{"id":"REQ-PMO-005","title":"Landing Playbook 6단계","status":"DRAFT","priority":"MEDIUM","description":"Discovery→Sizing→TeamSetup→Spec→Assembly→Execution","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-005.yaml"},{"id":"REQ-PMO-006","title":"Phase Gate 점수표","status":"DRAFT","priority":"HIGH","description":"P1→P2: 80점+절대기준. P2→P3: 기능완료+테스트통과","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-006.yaml"},{"id":"REQ-PMO-007","title":"Phase 전환 판정 (fugue gate)","status":"DRAFT","priority":"HIGH","description":"Phase Gate 점수 자동 계산 + CEO 승인 요청","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-007.yaml"},{"id":"REQ-PMO-008","title":"3-Phase 라이프사이클","status":"DRAFT","priority":"MEDIUM","description":"ISP(기획)→SI(구축)→SM(운영) 단계별 PM 역할 전환","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-008.yaml"},{"id":"REQ-PMO-009","title":"Crosscheck Loop 전체 8단계","status":"DRAFT","priority":"HIGH","description":"SUBMIT→AUDIT→REWORK→SYNC→ACK→RESOLVE→ESCALATE→GATE PASS","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-009.yaml"},{"id":"REQ-PMO-010","title":"에스컬레이션 프레임워크","status":"DRAFT","priority":"MEDIUM","description":"CEO 4대 영역 + PM 5 Guards + 자동 에스컬레이션 트리거","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-010.yaml"},{"id":"REQ-PMO-011","title":"에이전트 5차원 퍼포먼스","status":"DRAFT","priority":"MEDIUM","description":"D1완수율+D2품질+D3SLA+D4효율+D5협업 = 종합점수","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-011.yaml"},{"id":"REQ-PMO-012","title":"에이전트 용량 관리","status":"DRAFT","priority":"MEDIUM","description":"컨텍스트 예산제. Task당 1500줄 제한. 도메인당 30K LOC","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-012.yaml"},{"id":"REQ-PMO-013","title":"디자인 패턴 카탈로그","status":"DRAFT","priority":"MEDIUM","description":"프로젝트 유형(NB/LR/FA/PL) × 규모 = 패턴 자동 선정","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-013.yaml"},{"id":"REQ-PMO-014","title":"CSR 프로세스 (변경요청)","status":"DRAFT","priority":"MEDIUM","description":"Cat-1(PM승인) / Cat-2(CEO승인) / Cat-3(수용불가)","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-014.yaml"},{"id":"REQ-PMO-015","title":"산출물 납품 판정","status":"DRAFT","priority":"HIGH","description":"산출물 세트 완성 → Gate PASS → 요청자에게 정식 납품","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-015.yaml"},{"id":"REQ-PMO-016","title":"납품 리포트 생성","status":"DRAFT","priority":"HIGH","description":"산출물 목록 + Gate 결과 + 추적성 커버리지 = 납품 보고서","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-016.yaml"},{"id":"REQ-PMO-017","title":"PMO 독립 감사 체크리스트","status":"DRAFT","priority":"MEDIUM","description":"Phase Gate 시 PMO가 독립 감사. 산출물 완성도 5항목","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-017.yaml"},{"id":"REQ-PMO-018","title":"정기 보고 (주간/격주)","status":"DRAFT","priority":"MEDIUM","description":"PM→PMO 정기 보고. 진행률+이슈+리스크","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-018.yaml"},{"id":"REQ-PMO-019","title":"ANDON/HANDOFF/VOICE 프로토콜","status":"DRAFT","priority":"HIGH","description":"에이전트 간 판단요청/인수인계/피드백 정식 구현","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-019.yaml"},{"id":"REQ-PMO-020","title":"정책 이탈 프로토콜","status":"DRAFT","priority":"MEDIUM","description":"에이전트 자의 판단 금지. 정의서 벗어나면 자동 ANDON","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"PMO","yamlPath":".fugue/specs/REQ-PMO-020.yaml"},{"id":"REQ-REPT-001","title":"HTML 리포트","status":"DRAFT","priority":"MEDIUM","description":"필터/상세보기/검색","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"REPT","yamlPath":".fugue/specs/REQ-REPT-001.yaml"},{"id":"REQ-REPT-002","title":"마크다운 리포트","status":"DRAFT","priority":"MEDIUM","description":"Slack/Notion/GitHub 공유용","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"REPT","yamlPath":".fugue/specs/REQ-REPT-002.yaml"},{"id":"REQ-REPT-003","title":"요청자별 리포트","status":"DRAFT","priority":"MEDIUM","description":"--owner 필터","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"REPT","yamlPath":".fugue/specs/REQ-REPT-003.yaml"},{"id":"REQ-REPT-004","title":"task 단위 추적","status":"DRAFT","priority":"MEDIUM","description":"--task 기준 그루핑","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"REPT","yamlPath":".fugue/specs/REQ-REPT-004.yaml"},{"id":"REQ-REPT-005","title":"Slack webhook","status":"DRAFT","priority":"MEDIUM","description":"fugue notify add slack","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"REPT","yamlPath":".fugue/specs/REQ-REPT-005.yaml"},{"id":"REQ-REPT-006","title":"이메일 알림","status":"DRAFT","priority":"LOW","description":"SMTP. v0.3+","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"REPT","yamlPath":".fugue/specs/REQ-REPT-006.yaml"},{"id":"REQ-REPT-007","title":"완료 시 자동 리포팅","status":"DRAFT","priority":"MEDIUM","description":"task done → 알림 발송","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"REPT","yamlPath":".fugue/specs/REQ-REPT-007.yaml"},{"id":"REQ-SNAP-001","title":"코드→REQ 역설계","status":"DRAFT","priority":"HIGH","description":"conductor가 분석 후 에이전트가 REQ 추출","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-001.yaml"},{"id":"REQ-SNAP-002","title":"테스트 문서 자동 생성","status":"DRAFT","priority":"MEDIUM","description":"snapshot 시 REQ별 테스트 케이스 초안","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-002.yaml"},{"id":"REQ-SNAP-003","title":"E2E 추적성 매트릭스","status":"DRAFT","priority":"HIGH","description":"matrix.yaml 자동 생성","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-003.yaml"},{"id":"REQ-SNAP-004","title":"파일 배치 처리","status":"DRAFT","priority":"HIGH","description":"MAX_BATCH_CHARS 기반 청크 분할","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-004.yaml"},{"id":"REQ-SNAP-005","title":"scan include/exclude","status":"DRAFT","priority":"MEDIUM","description":"config.yaml의 scan 섹션","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-005.yaml"},{"id":"REQ-SNAP-006","title":"staging area","status":"DRAFT","priority":"HIGH","description":"review → apply/discard","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-006.yaml"},{"id":"REQ-SNAP-007","title":"--clean 옵션","status":"DRAFT","priority":"MEDIUM","description":"DRAFT 삭제 후 새로 분석","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-007.yaml"},{"id":"REQ-SNAP-008","title":"--append 옵션","status":"DRAFT","priority":"MEDIUM","description":"기존 유지 + 새 것만 추가","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-008.yaml"},{"id":"REQ-SNAP-009","title":"--keep-confirmed","status":"DRAFT","priority":"MEDIUM","description":"CONFIRMED 이상 보호","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-009.yaml"},{"id":"REQ-SNAP-010","title":"--dry-run","status":"DRAFT","priority":"MEDIUM","description":"저장 없이 미리보기","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-010.yaml"},{"id":"REQ-SNAP-011","title":"--stash","status":"DRAFT","priority":"LOW","description":"임시 저장 후 새로 분석","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-011.yaml"},{"id":"REQ-SNAP-012","title":"--pick","status":"DRAFT","priority":"MEDIUM","description":"특정 REQ만 선택 채택","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-012.yaml"},{"id":"REQ-SNAP-013","title":"PROTECTED 상태","status":"DRAFT","priority":"HIGH","description":"snapshot으로 덮어쓰기 방지","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-013.yaml"},{"id":"REQ-SNAP-014","title":"작업계획+프로그레스바","status":"DRAFT","priority":"MEDIUM","description":"4단계 + 경과 시간","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-014.yaml"},{"id":"REQ-SNAP-015","title":"도메인 병렬 처리","status":"DRAFT","priority":"LOW","description":"독립 도메인 동시 분석","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-015.yaml"},{"id":"REQ-SNAP-016","title":"예상 소요시간","status":"DRAFT","priority":"LOW","description":"남은 시간 추정","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-016.yaml"},{"id":"REQ-SNAP-017","title":"대형 레포 청크 처리","status":"DRAFT","priority":"HIGH","description":"파일 제한 있으나 디렉토리 단위 미구현","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"SNAP","yamlPath":".fugue/specs/REQ-SNAP-017.yaml"},{"id":"REQ-TASK-001","title":"task new","status":"DRAFT","priority":"HIGH","description":"신규 태스크. --requester 지정","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-001.yaml"},{"id":"REQ-TASK-002","title":"task import","status":"DRAFT","priority":"HIGH","description":"기획문서 연결","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-002.yaml"},{"id":"REQ-TASK-003","title":"기획문서 품질 검증","status":"DRAFT","priority":"MEDIUM","description":"task validate — conductor가 모호성/누락 체크","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-003.yaml"},{"id":"REQ-TASK-004","title":"task decompose","status":"DRAFT","priority":"HIGH","description":"태스크 단위 REQ 분해","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-004.yaml"},{"id":"REQ-TASK-005","title":"task confirm","status":"DRAFT","priority":"HIGH","description":"요청자 컨펌","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-005.yaml"},{"id":"REQ-TASK-006","title":"task assign","status":"DRAFT","priority":"HIGH","description":"작업자 배정 (사람/에이전트)","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-006.yaml"},{"id":"REQ-TASK-007","title":"task done","status":"DRAFT","priority":"HIGH","description":"완료 + 자동 검증 + 리포트","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-007.yaml"},{"id":"REQ-TASK-008","title":"task escalate","status":"DRAFT","priority":"MEDIUM","description":"에스컬레이션","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-008.yaml"},{"id":"REQ-TASK-009","title":"요청자(owner) 필드","status":"DRAFT","priority":"HIGH","description":"task yaml requester","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-009.yaml"},{"id":"REQ-TASK-010","title":"작업자(assignee) 필드","status":"DRAFT","priority":"HIGH","description":"task yaml assignees[]","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-010.yaml"},{"id":"REQ-TASK-011","title":"요청자→작업자 워크플로우","status":"DRAFT","priority":"HIGH","description":"상태 전이 체계","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-011.yaml"},{"id":"REQ-TASK-012","title":"다른 PC에서 작업","status":"DRAFT","priority":"MEDIUM","description":"git으로 .fugue/ 공유. 전용 동기화 미구현","created":"2026-03-25T14:38:58.994Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TASK","yamlPath":".fugue/specs/REQ-TASK-012.yaml"},{"id":"REQ-TRAC-001","title":"git log에서 REQ-ID 패턴 파싱","status":"DRAFT","priority":"HIGH","description":"커밋 메시지에서 REQ-XXX-NNN 패턴을 정규식으로 추출하고 해당 커밋의 변경 파일 목록을 가져온다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-001.yaml"},{"id":"REQ-TRAC-002","title":"소스 파일 code_refs 자동 매핑","status":"DRAFT","priority":"HIGH","description":"파싱된 변경 파일 중 소스 코드를 해당 REQ의 code_refs에 자동 추가한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-002.yaml"},{"id":"REQ-TRAC-003","title":"테스트 파일 test_refs 자동 매핑","status":"DRAFT","priority":"HIGH","description":"파일명에 test/spec/__tests__ 포함 또는 tests/ 하위 파일을 test_refs에 자동 매핑한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-003.yaml"},{"id":"REQ-TRAC-004","title":"삭제된 파일 STALE 마킹","status":"DRAFT","priority":"MEDIUM","description":"이미 매핑된 파일이 파일시스템에서 삭제된 경우 해당 ref를 STALE로 마킹한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-004.yaml"},{"id":"REQ-TRAC-005","title":"fugue sync CLI 명령어","status":"DRAFT","priority":"HIGH","description":"fugue sync [--since <commit>] [--dry-run] [--auto-enrich] CLI를 구현한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-005.yaml"},{"id":"REQ-TRAC-006","title":"fugue_sync MCP 도구","status":"DRAFT","priority":"MEDIUM","description":"동일 기능을 MCP tool로 노출한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-006.yaml"},{"id":"REQ-TRAC-007","title":"수동 매핑과 자동 매핑 병합","status":"DRAFT","priority":"MEDIUM","description":"기존 수동 매핑을 덮어쓰지 않고 union 병합한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-007.yaml"},{"id":"REQ-TRAC-008","title":"sync 결과 요약 출력","status":"DRAFT","priority":"LOW","description":"N REQs synced, N code_refs added, N test_refs added + 승급 제안 목록을 출력한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-008.yaml"},{"id":"REQ-TRAC-009","title":"REQ YAML에 ai_context 필드 추가","status":"DRAFT","priority":"HIGH","description":"summary(100자), key_rules(3~5개), common_mistakes(2~4개) 구조의 ai_context 객체를 스키마에 추가한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-009.yaml"},{"id":"REQ-TRAC-010","title":"REQ YAML에 policy_ref 필드 추가","status":"DRAFT","priority":"HIGH","description":"연결된 Policy MD 파일 경로를 저장하는 policy_ref 필드를 추가한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-010.yaml"},{"id":"REQ-TRAC-011","title":"REQ YAML에 detail_level 필드 추가","status":"DRAFT","priority":"HIGH","description":"0~3 정수로 현재 상세화 수준을 나타내는 detail_level 필드를 추가한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-011.yaml"},{"id":"REQ-TRAC-012","title":"REQ YAML에 revision/history 필드 추가","status":"DRAFT","priority":"HIGH","description":"revision(숫자)과 history 배열(rev, at, by, field, from, to, reason)을 추가한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-012.yaml"},{"id":"REQ-TRAC-013","title":"필드 변경 시 자동 history 기록","status":"DRAFT","priority":"HIGH","description":"title, description, priority, status 변경 시 이전 값을 history에 자동 기록한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-013.yaml"},{"id":"REQ-TRAC-014","title":"기존 REQ YAML 하위호환","status":"DRAFT","priority":"HIGH","description":"새 필드가 없는 기존 REQ도 정상 동작. 기본값: detail_level=1, revision=0, history=[], ai_context=null","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-014.yaml"},{"id":"REQ-TRAC-015","title":"통합 타임라인 조회","status":"DRAFT","priority":"MEDIUM","description":"fugue plan history에서 feedback + 변경이력을 시간순 통합 타임라인으로 보여준다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"TRAC","yamlPath":".fugue/specs/REQ-TRAC-015.yaml"},{"id":"REQ-VRFY-001","title":"fugue verify CLI 명령어","status":"DRAFT","priority":"MEDIUM","description":"fugue verify [--since <commit>]로 변경 파일→REQ 역매핑, NO_TEST/TEST_NEEDED 경고 출력","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"VRFY","yamlPath":".fugue/specs/REQ-VRFY-001.yaml"},{"id":"REQ-VRFY-002","title":"fugue_verify MCP 도구","status":"DRAFT","priority":"LOW","description":"동일 기능을 MCP tool로 노출한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"VRFY","yamlPath":".fugue/specs/REQ-VRFY-002.yaml"},{"id":"REQ-VRFY-003","title":"빈 matrix 시 sync 안내","status":"DRAFT","priority":"LOW","description":"matrix가 비어있으면 fugue sync 실행을 먼저 안내한다","created":"2026-04-02T23:35:07.433Z","code_refs":[],"test_refs":[],"assigned_model":"","domain":"VRFY","yamlPath":".fugue/specs/REQ-VRFY-003.yaml"}];
+    var PAGE_SIZE = 50;
+    var currentPage = 1;
+    var filteredReqs = ALL_REQS.slice();
+    var openDetails = {};
+
+    var activePriorities = {};
+    var activeStatuses = {};
+
+    window.toggleFilter = function(btn) {
+      var filter = btn.getAttribute('data-filter');
+      var value = btn.getAttribute('data-value');
+      var map = filter === 'priority' ? activePriorities : activeStatuses;
+
+      if (map[value]) {
+        delete map[value];
+        btn.classList.remove('active', 'active-high', 'active-medium', 'active-low');
+      } else {
+        map[value] = true;
+        if (filter === 'priority') {
+          btn.classList.add('active-' + value.toLowerCase());
+        } else {
+          btn.classList.add('active');
+        }
+      }
+      applyFilters();
+    };
+
+    window.applyFilters = function() {
+      var domain = document.getElementById('domainFilter').value;
+      var search = document.getElementById('searchBox').value.toLowerCase().trim();
+      var prioKeys = Object.keys(activePriorities);
+      var statusKeys = Object.keys(activeStatuses);
+
+      filteredReqs = ALL_REQS.filter(function(r) {
+        if (domain && r.domain !== domain) return false;
+        if (prioKeys.length > 0 && !activePriorities[r.priority]) return false;
+        if (statusKeys.length > 0 && !activeStatuses[r.status]) return false;
+        if (search && r.id.toLowerCase().indexOf(search) === -1 && r.title.toLowerCase().indexOf(search) === -1) return false;
+        return true;
+      });
+
+      currentPage = 1;
+      render();
+    };
+
+    window.toggleDetail = function(id) {
+      openDetails[id] = !openDetails[id];
+      render();
+    };
+
+    window.goToPage = function(p) {
+      currentPage = p;
+      render();
+    };
+
+    function escH(s) {
+      var d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function render() {
+      var total = filteredReqs.length;
+      var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      var start = (currentPage - 1) * PAGE_SIZE;
+      var pageReqs = filteredReqs.slice(start, start + PAGE_SIZE);
+
+      document.getElementById('reqCount').textContent = total + ' / ' + ALL_REQS.length;
+
+      var html = '';
+      for (var i = 0; i < pageReqs.length; i++) {
+        var r = pageReqs[i];
+        var cls = 'status-' + r.status.toLowerCase();
+        var isOpen = openDetails[r.id];
+        html += '<tr class="req-row" onclick="toggleDetail(\''+r.id+'\')">';
+        html += '<td><span class="chevron'+(isOpen?' open':'')+'">\u25B6</span></td>';
+        html += '<td>'+escH(r.id)+'</td>';
+        html += '<td class="status '+cls+'">'+escH(r.status)+'</td>';
+        html += '<td>'+escH(r.priority)+'</td>';
+        html += '<td>'+escH(r.title)+'</td>';
+        html += '</tr>';
+        html += '<tr class="req-detail'+(isOpen?' open':'')+'">';
+        html += '<td colspan="5"><div class="detail-grid">';
+        html += '<span class="detail-label">Description</span><span class="detail-value">'+escH(r.description || '(none)')+'</span>';
+        html += '<span class="detail-label">Created</span><span class="detail-value">'+escH(r.created || '(unknown)')+'</span>';
+        html += '<span class="detail-label">Code Refs</span><span class="detail-value">'+(r.code_refs.length > 0 ? r.code_refs.map(function(c){return '<code>'+escH(c)+'</code>';}).join(' ') : '(none)')+'</span>';
+        html += '<span class="detail-label">Test Refs</span><span class="detail-value">'+(r.test_refs.length > 0 ? r.test_refs.map(function(c){return '<code>'+escH(c)+'</code>';}).join(' ') : '(none)')+'</span>';
+        if (r.assigned_model) html += '<span class="detail-label">Model</span><span class="detail-value">'+escH(r.assigned_model)+'</span>';
+        html += '<span class="detail-label">YAML</span><span class="detail-value"><code>'+escH(r.yamlPath)+'</code></span>';
+        html += '</div></td></tr>';
+      }
+      document.getElementById('reqTableBody').innerHTML = html;
+
+      // Pagination
+      var pagHtml = '';
+      if (totalPages > 1) {
+        pagHtml += '<button class="page-btn" onclick="goToPage(1)"'+(currentPage===1?' disabled':'')+'>\u00AB</button>';
+        pagHtml += '<button class="page-btn" onclick="goToPage('+(currentPage-1)+')"'+(currentPage===1?' disabled':'')+'>\u2039</button>';
+
+        var startP = Math.max(1, currentPage - 3);
+        var endP = Math.min(totalPages, currentPage + 3);
+        for (var p = startP; p <= endP; p++) {
+          pagHtml += '<button class="page-btn'+(p===currentPage?' active':'')+'" onclick="goToPage('+p+')">'+p+'</button>';
+        }
+
+        pagHtml += '<button class="page-btn" onclick="goToPage('+(currentPage+1)+')"'+(currentPage===totalPages?' disabled':'')+'>\u203A</button>';
+        pagHtml += '<button class="page-btn" onclick="goToPage('+totalPages+')"'+(currentPage===totalPages?' disabled':'')+'>\u00BB</button>';
+        pagHtml += '<span class="page-info">'+start+1+'-'+Math.min(start+PAGE_SIZE,total)+' of '+total+'</span>';
+      }
+      document.getElementById('pagination').innerHTML = pagHtml;
+    }
+
+    render();
+  })();
+  </script>
+</body>
+</html>

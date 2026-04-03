@@ -2,7 +2,8 @@ id: REQ-PMO-019
 title: ANDON/HANDOFF/VOICE 프로토콜
 priority: HIGH
 description: 에이전트 간 판단요청/인수인계/피드백 정식 구현
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

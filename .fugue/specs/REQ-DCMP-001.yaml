@@ -2,7 +2,8 @@ id: REQ-DCMP-001
 title: 문서 포맷 자동 감지
 priority: MEDIUM
 description: decompose 시 마크다운 헤딩, 린캔버스, 태스크 체크리스트 등 포맷을 자동 감지한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

@@ -2,7 +2,8 @@ id: REQ-MODL-004
 title: 구독/API 선택
 priority: HIGH
 description: 모든 모델에서 구독/API 선택
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

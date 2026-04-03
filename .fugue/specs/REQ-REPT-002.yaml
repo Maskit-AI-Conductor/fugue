@@ -2,7 +2,8 @@ id: REQ-REPT-002
 title: 마크다운 리포트
 priority: MEDIUM
 description: Slack/Notion/GitHub 공유용
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

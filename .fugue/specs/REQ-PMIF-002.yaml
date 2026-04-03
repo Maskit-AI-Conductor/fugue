@@ -2,7 +2,8 @@ id: REQ-PMIF-002
 title: pm-review 워크플로우 프리셋
 priority: HIGH
 description: DRAFT REQ 순차 리뷰 → confirm까지의 워크플로우
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

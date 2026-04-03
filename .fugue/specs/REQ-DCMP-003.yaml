@@ -2,7 +2,8 @@ id: REQ-DCMP-003
 title: decompose dry-run
 priority: LOW
 description: fugue plan decompose --dry-run으로 생성될 REQ를 미리보기한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

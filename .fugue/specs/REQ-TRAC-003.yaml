@@ -2,7 +2,8 @@ id: REQ-TRAC-003
 title: 테스트 파일 test_refs 자동 매핑
 priority: HIGH
 description: 파일명에 test/spec/__tests__ 포함 또는 tests/ 하위 파일을 test_refs에 자동 매핑한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

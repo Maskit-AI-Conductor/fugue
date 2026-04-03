@@ -2,7 +2,8 @@ id: REQ-PMO-018
 title: 정기 보고 (주간/격주)
 priority: MEDIUM
 description: PM→PMO 정기 보고. 진행률+이슈+리스크
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

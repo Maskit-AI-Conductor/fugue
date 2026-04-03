@@ -2,7 +2,8 @@ id: REQ-PMO-017
 title: PMO 독립 감사 체크리스트
 priority: MEDIUM
 description: Phase Gate 시 PMO가 독립 감사. 산출물 완성도 5항목
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

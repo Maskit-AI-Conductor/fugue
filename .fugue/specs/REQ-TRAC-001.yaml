@@ -2,7 +2,8 @@ id: REQ-TRAC-001
 title: git log에서 REQ-ID 패턴 파싱
 priority: HIGH
 description: 커밋 메시지에서 REQ-XXX-NNN 패턴을 정규식으로 추출하고 해당 커밋의 변경 파일 목록을 가져온다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

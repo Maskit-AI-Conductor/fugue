@@ -2,7 +2,8 @@ id: REQ-PDET-003
 title: 자동 승급 제안 엔진
 priority: HIGH
 description: sync 후 각 REQ의 code_refs 수를 집계하여 임계치 초과 시 L2/L3 승급을 suggest한다. 강제가 아니라 dismiss 가능
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

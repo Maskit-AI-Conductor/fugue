@@ -2,7 +2,8 @@ id: REQ-PDET-002
 title: 상세화 임계치 설정
 priority: HIGH
 description: L2 임계치(기본 code_refs 5개), L3 임계치(기본 10개 또는 cross-ref 3+)를 config.yaml의 progressive_detail 섹션에서 프로젝트별 조정 가능하게 한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

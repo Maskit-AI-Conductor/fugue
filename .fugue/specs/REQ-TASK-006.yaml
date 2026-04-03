@@ -2,7 +2,8 @@ id: REQ-TASK-006
 title: task assign
 priority: HIGH
 description: 작업자 배정 (사람/에이전트)
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

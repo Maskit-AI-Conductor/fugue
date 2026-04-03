@@ -2,7 +2,8 @@ id: REQ-PMO-003
 title: 사이즈 모니터링 + 업그레이드 알림
 priority: HIGH
 description: REQ/LOC 증가 시 사이즈 재책정. "M→L 전환 필요" 알림
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

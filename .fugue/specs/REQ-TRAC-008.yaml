@@ -2,7 +2,8 @@ id: REQ-TRAC-008
 title: sync 결과 요약 출력
 priority: LOW
 description: N REQs synced, N code_refs added, N test_refs added + 승급 제안 목록을 출력한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

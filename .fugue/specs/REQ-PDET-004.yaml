@@ -2,7 +2,8 @@ id: REQ-PDET-004
 title: 역방향 승급 (Policy→REQ)
 priority: MEDIUM
 description: Policy MD가 먼저 작성된 경우 REQ YAML + ai_context를 Policy에서 자동 추출한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

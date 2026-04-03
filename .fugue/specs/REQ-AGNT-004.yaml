@@ -2,7 +2,8 @@ id: REQ-AGNT-004
 title: 업무일지 자동 작성
 priority: MEDIUM
 description: JSONL 형태 매 실행 기록
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

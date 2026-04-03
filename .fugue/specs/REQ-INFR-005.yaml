@@ -2,7 +2,8 @@ id: REQ-INFR-005
 title: SLM 절삭 트레이드오프
 priority: MEDIUM
 description: 무리한 SLM 사용 방지 경고
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

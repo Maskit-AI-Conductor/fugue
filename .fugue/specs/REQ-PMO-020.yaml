@@ -2,7 +2,8 @@ id: REQ-PMO-020
 title: 정책 이탈 프로토콜
 priority: MEDIUM
 description: 에이전트 자의 판단 금지. 정의서 벗어나면 자동 ANDON
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

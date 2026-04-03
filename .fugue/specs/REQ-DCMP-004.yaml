@@ -2,7 +2,8 @@ id: REQ-DCMP-004
 title: 기존 CONFIRMED REQ 중복 경고
 priority: LOW
 description: decompose 결과가 기존 CONFIRMED REQ와 중복되면 경고를 출력한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

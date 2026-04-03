@@ -2,7 +2,8 @@ id: REQ-SNAP-002
 title: 테스트 문서 자동 생성
 priority: MEDIUM
 description: snapshot 시 REQ별 테스트 케이스 초안
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

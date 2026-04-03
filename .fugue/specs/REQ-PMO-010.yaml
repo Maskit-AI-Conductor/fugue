@@ -2,7 +2,8 @@ id: REQ-PMO-010
 title: 에스컬레이션 프레임워크
 priority: MEDIUM
 description: CEO 4대 영역 + PM 5 Guards + 자동 에스컬레이션 트리거
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

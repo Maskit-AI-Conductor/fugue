@@ -2,7 +2,8 @@ id: REQ-TRAC-007
 title: 수동 매핑과 자동 매핑 병합
 priority: MEDIUM
 description: 기존 수동 매핑을 덮어쓰지 않고 union 병합한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

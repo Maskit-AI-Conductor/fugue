@@ -2,7 +2,8 @@ id: REQ-TRAC-016
 title: REQ YAML에 task_id 필드 추가
 priority: HIGH
 description: REQ가 어느 TASK에서 생성되었는지 역추적할 수 있도록 task_id 필드를 추가한다. decompose 시 자동으로 채워진다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-03T00:00:20.681Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

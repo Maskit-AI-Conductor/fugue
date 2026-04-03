@@ -2,7 +2,8 @@ id: REQ-PMO-005
 title: Landing Playbook 6단계
 priority: MEDIUM
 description: Discovery→Sizing→TeamSetup→Spec→Assembly→Execution
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

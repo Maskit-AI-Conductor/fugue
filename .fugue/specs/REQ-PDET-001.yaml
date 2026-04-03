@@ -2,7 +2,8 @@ id: REQ-PDET-001
 title: Progressive Detail 4단계 레벨 정의
 priority: HIGH
 description: L0(커밋태깅)→L1(REQ정의)→L2(ai_context자동)→L3(Policy자동) 4단계 상세화 모델을 config.yaml에 정의한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

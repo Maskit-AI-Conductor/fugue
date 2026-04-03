@@ -2,7 +2,8 @@ id: REQ-PMO-002
 title: 규모별 방법론 매핑
 priority: HIGH
 description: XS=최소 산출물, M=Crosscheck 필수, XL=풀 감리. 자동 적용
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

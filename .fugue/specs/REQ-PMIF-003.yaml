@@ -2,7 +2,8 @@ id: REQ-PMIF-003
 title: PM용 MCP 사용 가이드 생성
 priority: MEDIUM
 description: fugue agent guide --role pm 명령으로 PM 에이전트 프롬프트에 삽입할 가이드 마크다운을 생성한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-02T23:35:07.433Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

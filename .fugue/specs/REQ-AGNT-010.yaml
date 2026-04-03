@@ -2,7 +2,8 @@ id: REQ-AGNT-010
 title: 프로젝트 에이전트 갭 분석
 priority: HIGH
 description: fugue diagnose 또는 별도 명령으로 프로젝트의 REQ 도메인/복잡도 대비 현재 에이전트 구성의 부족분을 분석하고, 필요한 에이전트 역할을 권고한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-03T00:00:20.681Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

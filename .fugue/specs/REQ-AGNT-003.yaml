@@ -2,7 +2,8 @@ id: REQ-AGNT-003
 title: '--never 옵션'
 priority: HIGH
 description: '"하지 말 것" > "할 것"'
-status: DRAFT
+status: CONFIRMED
 created: '2026-03-25T14:38:58.994Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'

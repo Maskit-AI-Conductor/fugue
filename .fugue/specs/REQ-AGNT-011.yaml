@@ -2,7 +2,8 @@ id: REQ-AGNT-011
 title: 에이전트 프롬프트 자동 생성
 priority: HIGH
 description: 권고된 에이전트에 대해 유저가 승인하면, 프로젝트의 CLAUDE.md/REQ/코드를 분석하여 .claude/agents/{name}.md 프롬프트를 자동 생성한다
-status: DRAFT
+status: CONFIRMED
 created: '2026-04-03T00:00:20.681Z'
 code_refs: []
 test_refs: []
+confirmed_at: '2026-04-03T00:47:24.620Z'
