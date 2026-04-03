@@ -62,8 +62,15 @@ export interface FugueConfig {
     original_path?: string;
   };
   generation?: GenerationConfig;
+  progressive_detail?: ProgressiveDetailConfig;
   created: string;
   [key: string]: unknown;
+}
+
+export interface ProgressiveDetailConfig {
+  l2_threshold: number;   // code_refs count to suggest L2 (default: 5)
+  l3_threshold: number;   // code_refs count to suggest L3 (default: 10)
+  l3_cross_ref: number;   // REQs sharing same file to suggest L3 (default: 3)
 }
 
 export interface ModelsRegistry {
@@ -225,6 +232,23 @@ export function saveModelsRaw(fuguePath: string, registry: ModelsRegistry): void
 
 // --- Specs ---
 
+export interface HistoryEntry {
+  rev: number;
+  at: string;
+  by: string;
+  field: string;
+  from: string;
+  to: string;
+  reason?: string;
+}
+
+export interface AiContext {
+  summary: string;
+  key_rules: string[];
+  common_mistakes: string[];
+  auto_generated?: boolean;
+}
+
 export interface ReqSpec {
   id: string;
   title: string;
@@ -241,6 +265,14 @@ export interface ReqSpec {
   };
   source_files?: string[];
   assigned_model?: string;
+  // Progressive Detail fields (TRAC-009~017)
+  detail_level?: number;        // 0=commit tag, 1=REQ, 2=ai_context, 3=policy
+  ai_context?: AiContext | null;
+  policy_ref?: string | null;   // path to .fugue/policies/{domain}/{name}.md
+  task_id?: string | null;      // TASK-NNN that generated this REQ
+  methodology_ref?: string | null; // e.g. "ch05-traceability"
+  revision?: number;
+  history?: HistoryEntry[];
   [key: string]: unknown;
 }
 
@@ -260,10 +292,48 @@ export function loadSpecs(fuguePath: string): ReqSpec[] {
   return specs;
 }
 
-export function saveSpec(fuguePath: string, req: ReqSpec): void {
+/** Tracked fields for automatic history recording (TRAC-013) */
+const TRACKED_FIELDS = ['title', 'description', 'priority', 'status'] as const;
+
+/**
+ * Save a REQ spec with automatic change history tracking.
+ * Compares against existing spec and records changes to history[].
+ */
+export function saveSpec(fuguePath: string, req: ReqSpec, by = 'system', reason?: string): void {
   const specsDir = path.join(fuguePath, 'specs');
   fs.mkdirSync(specsDir, { recursive: true });
-  saveYaml(path.join(specsDir, `${req.id}.yaml`), req);
+
+  const specPath = path.join(specsDir, `${req.id}.yaml`);
+  const existing = loadYaml<ReqSpec>(specPath);
+
+  // Ensure defaults for new fields (TRAC-014 backward compat)
+  if (req.detail_level === undefined) req.detail_level = 1;
+  if (req.revision === undefined) req.revision = 0;
+  if (!req.history) req.history = [];
+
+  // Auto-record changes to tracked fields
+  if (existing) {
+    let currentRev: number = req.revision ?? 0;
+    for (const field of TRACKED_FIELDS) {
+      const oldVal = String(existing[field] ?? '');
+      const newVal = String(req[field] ?? '');
+      if (oldVal !== newVal) {
+        currentRev += 1;
+        req.history.push({
+          rev: currentRev,
+          at: new Date().toISOString(),
+          by,
+          field,
+          from: oldVal,
+          to: newVal,
+          ...(reason ? { reason } : {}),
+        });
+      }
+    }
+    req.revision = currentRev;
+  }
+
+  saveYaml(specPath, req);
 }
 
 // --- Matrix ---

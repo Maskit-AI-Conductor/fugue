@@ -21,6 +21,7 @@ import { adminCommand } from './commands/admin.js';
 import { diagnoseCommand, gateCommand, deliverCommand } from './commands/diagnose.js';
 import { workflowCommand } from './commands/workflow.js';
 import { webCommand } from './commands/web.js';
+import { syncCommand } from './commands/sync.js';
 
 const program = new Command();
 
@@ -47,6 +48,7 @@ program.addCommand(gateCommand);
 program.addCommand(deliverCommand);
 program.addCommand(workflowCommand);
 program.addCommand(webCommand);
+program.addCommand(syncCommand);
 
 const mcpCommand = new Command('mcp')
   .description('Start MCP server (for AI coding assistants)')

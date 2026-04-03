@@ -30,6 +30,7 @@ import { buildDeliverables } from '../core/deliverables.js';
 import { diagnoseSize, countLoc } from '../core/sizing.js';
 import { loadAgentDefs, saveAgentDef, type AgentDefinition } from '../agents/runner.js';
 import { minimatch } from '../utils/glob.js';
+import { parseGitLog, syncSpecs, type SyncResult } from '../commands/sync.js';
 
 // =============================================
 // Types
@@ -284,6 +285,18 @@ export function getToolList(): ToolDef[] {
         required: ['reqs'],
       },
     },
+    {
+      name: 'fugue_sync',
+      description: 'Sync git commits to REQ traceability matrix. Parses REQ-IDs from commit messages and auto-maps code_refs/test_refs.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          since: { type: 'string', description: 'Git commit hash to sync from (default: all commits)' },
+          dryRun: { type: 'boolean', description: 'Preview changes without saving' },
+          path: { type: 'string', description: 'Project path (default: cwd)' },
+        },
+      },
+    },
   ];
 }
 
@@ -309,6 +322,7 @@ export async function handleRequest(name: string, args: Record<string, unknown>)
       case 'fugue_report': return handleReport(args);
       case 'fugue_snapshot_scan': return handleSnapshotScan(args);
       case 'fugue_snapshot_save': return handleSnapshotSave(args);
+      case 'fugue_sync': return handleSync(args);
       default:
         return errorResult(`Unknown tool: ${name}`);
     }
@@ -911,4 +925,33 @@ function handleSnapshotSave(args: Record<string, unknown>): ToolResult {
   }
 
   return textResult({ saved: reqInputs.length, staging: true });
+}
+
+function handleSync(args: Record<string, unknown>): ToolResult {
+  const fugueDir = resolveFugueDir(args.path as string | undefined);
+  const config = loadConfig(fugueDir);
+  const specs = loadSpecs(fugueDir);
+  const since = args.since as string | undefined;
+  const dryRun = (args.dryRun as boolean) ?? false;
+
+  if (specs.length === 0) {
+    return textResult({ error: 'No REQ specs found. Run fugue plan decompose first.' });
+  }
+
+  const commits = parseGitLog(since);
+  if (commits.length === 0) {
+    return textResult({ commits: 0, message: 'No commits with REQ-IDs found.' });
+  }
+
+  const result: SyncResult = syncSpecs(fugueDir, specs, commits, config, dryRun);
+
+  return textResult({
+    dryRun,
+    commits: commits.length,
+    reqsUpdated: result.reqsUpdated,
+    codeRefsAdded: result.codeRefsAdded,
+    testRefsAdded: result.testRefsAdded,
+    staleMarked: result.staleMarked,
+    promotions: result.promotions,
+  });
 }
